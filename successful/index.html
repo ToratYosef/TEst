@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Purchase Successful!</title>
+    <meta name="description" content="Official Spin to Win Raffle for Mi Kamcha Yisroel. Win premium prizes that support the community.">
+    <meta name="keywords" content="Mi Kamcha Yisroel, Raffle, Rolex, Charity, Spin to Win, Brooklyn, Community">
+    <meta name="author" content="Saul Setton">
+    <!-- Favicon using the updated local logo --><link rel="icon" type="image/png" href="/assets/logo.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Tailwind Configuration for Mi Kamcha YisroelColors --><script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Logo Colors - matching home page
+                        'ma-navy': '#0A0E27',
+                        'ma-gold': '#C9A961',
+                        // Darker shade for gradient start
+                        'ma-dark': '#050810', 
+                        // Complementary dark for inner panels/cards
+                        'ma-slate': '#0F1527', 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            /* Match home page gradient */
+            background-color: #050810;
+            background-image: linear-gradient(135deg, #050810 0%, #0A0E27 100%);
+            overflow-x: hidden;
+        }
+        .bebas-neue { 
+            font-family: 'Bebas Neue', sans-serif; 
+        }
+        
+        /* Layered starry overlay for depth - matching home page */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+        body::before {
+            background: radial-gradient(circle at 20% 20%, rgba(184, 154, 95, 0.15), transparent 50%),
+                        radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.08), transparent 55%),
+                        radial-gradient(circle at 15% 75%, rgba(184, 154, 95, 0.12), transparent 55%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.06), transparent 60%);
+            filter: blur(0.4px);
+        }
+        body::after {
+            background-image: url('data:image/svg+xml,%3Csvg width="180" height="180" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Ccircle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.08)"/%3E%3Ccircle cx="50" cy="60" r="1" fill="rgba(184,154,95,0.08)"/%3E%3Ccircle cx="90" cy="25" r="1" fill="rgba(255,255,255,0.08)"/%3E%3Ccircle cx="40" cy="15" r="1" fill="rgba(184,154,95,0.08)"/%3E%3Ccircle cx="70" cy="85" r="1" fill="rgba(255,255,255,0.08)"/%3E%3C/svg%3E');
+            opacity: 0.45;
+        }
+        
+        .glass-panel {
+            /* Main translucent background - matching home page */
+            background: rgba(15, 21, 39, 0.3); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* Subtle gold glow */
+            border: 2px solid rgba(201, 169, 97, 0.3);
+            box-shadow: 
+                0 0 12px rgba(201, 169, 97, 0.2),
+                inset 0 0 10px rgba(201, 169, 97, 0.08);
+        }
+        .glass-outline {
+            /* Secondary card background */
+            background: rgba(10, 14, 39, 0.5);
+            border: 1px solid rgba(201, 169, 97, 0.25);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .glow-button {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            isolation: isolate;
+        }
+        .glow-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+            transform: skewX(-20deg);
+            transition: none;
+            opacity: 0;
+        }
+        .glow-button:hover::after {
+            animation: shimmer 1s infinite;
+            opacity: 1;
+        }
+        @keyframes shimmer {
+            0% { left: -50%; }
+            100% { left: 150%; }
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 767px) {
+            #main-menu {
+                background-color: #050810;
+                padding-bottom: 1rem;
+            }
+            #main-menu li { 
+                width: 100%; 
+            }
+            #main-menu li a {
+                display: block;
+                text-align: center;
+                padding: 0.75rem 1rem;
+            }
+            #main-menu li:last-child a { 
+                margin-top: 0.5rem; 
+            }
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+    <!-- Header (Transparent Fixed) -->
+    <header class="bg-black/40 py-4 px-4 md:px-12 fixed w-full top-0 z-50 shadow-2xl backdrop-blur-sm">
+        <nav class="container mx-auto flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-3">
+                <img src="/assets/logo.png" alt="Mi Kamcha YisroelLogo" class="h-12 md:h-14 w-auto rounded-full ring-2 ring-ma-gold p-1">
+                <span class="bebas-neue text-xl md:text-2xl tracking-wider text-white hidden md:block">MI KAMCHA YISROEL</span>
+            </a>
+            <a href="/" class="py-2 px-5 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Back to Home</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center px-4 py-8 pt-32 pb-8">
+        <!-- Compact success card --><div class="w-full max-w-xl mx-auto text-center p-6 md:p-8 glass-panel rounded-2xl shadow-2xl">
+            <h1 class="bebas-neue text-4xl md:text-5xl font-bold text-ma-gold mb-3 drop-shadow-lg">
+                Thank You!
+            </h1>
+            <p id="success-message" class="text-base md:text-lg text-gray-300 mb-6">
+                Your purchase was successful.
+            </p>
+            <div id="ticket-info" class="space-y-4">
+                <!-- Inner Card uses Dark Slate and Gold Accents --><div class="glass-outline p-8 rounded-2xl shadow-xl">
+                    <p class="text-sm uppercase tracking-wider text-ma-gold font-semibold mb-3">Your Ticket Number</p>
+                    <div class="text-5xl sm:text-6xl md:text-7xl font-bold bebas-neue text-white drop-shadow-lg">
+                        <span id="ticketNumberDisplay">N/A</span>
+                    </div>
+                    <p class="text-sm uppercase tracking-wider text-ma-gold font-semibold mt-6 mb-2">Total Paid (Including Fees)</p>
+                    <div class="text-3xl sm:text-4xl md:text-5xl font-bold bebas-neue text-white drop-shadow-lg">
+                        <span id="ticketPaidDisplay">$0.00</span>
+                    </div>
+                    <p id="ticketFeesDisplay" class="text-gray-300 text-sm mt-2"></p>
+                </div>
+            </div>
+            <p class="text-sm md:text-base text-gray-400 mb-6">
+                Good luck in the drawing!
+            </p>
+            
+            <!-- Compact CTA Section --><div class="pt-4 border-t border-ma-gold/30">
+                <p class="text-lg font-semibold text-white mb-4 bebas-neue tracking-wider">
+                    Need a raffle page like this?
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-3">
+                    <a href="sms:5166526950?&body=I%20saw%20your%20Mi%20Keamcha%20Yisrael%20Raffle%20Page%20and%20want%20one%20just%20like%20it."
+                       class="inline-block py-3 px-6 rounded-full bg-ma-gold text-ma-navy text-base font-bold hover:bg-ma-gold/80 transition-colors duration-300 glow-button shadow-lg shadow-ma-gold/30">
+                        I Want a Page Like This!
+                    </a>
+                    <a href="/" 
+                       class="inline-block py-3 px-6 rounded-full border border-ma-gold text-ma-gold text-base font-bold hover:bg-ma-gold/10 transition-colors duration-300 shadow-md">
+                        Back to Homepage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-black/40 py-8 mt-auto shadow-[0_-5px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm border-t border-ma-gold/20">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+                <div class="text-center md:text-left">
+                    <h3 class="text-ma-gold font-bold mb-2">Mi Kamcha Yisroel/h3>
+                    <p class="text-sm text-gray-400">Supporting our community through charitable initiatives.</p>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-ma-gold font-bold mb-2">Quick Links</h3>
+                    <ul class="text-sm text-gray-400 space-y-1">
+                        <li><a href="/" class="hover:text-ma-gold transition-colors">Home</a></li>
+                        <li><a href="/terms.html" class="hover:text-ma-gold transition-colors">Terms of Service</a></li>
+                        <li><a href="/privacy.html" class="hover:text-ma-gold transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="text-center md:text-right">
+                    <h3 class="text-ma-gold font-bold mb-2">Contact</h3>
+                    <p class="text-sm text-gray-400">
+                        <a href="sms:5166526950" class="hover:text-ma-gold transition-colors">Text: 516-652-6950</a>
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-ma-gold/20 pt-4 text-center">
+                <p class="text-sm text-gray-500 mb-1">
+                    &copy; 2026 Mi Kamcha Yisroel. All Rights Reserved.
+                </p>
+                <p class="text-sm text-gray-500">
+                    Website created by 
+                    <a href="sms:9295845753" class="text-ma-gold hover:text-ma-gold/80 transition-colors">Saul Setton</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const name = urlParams.get('name') || 'Valued Donor';
+            const tickets = urlParams.get('tickets') || '1';
+            const ticketNumber = urlParams.get('ticketNumber') || urlParams.get('amount') || 'your ticket number';
+            const amount = parseFloat(urlParams.get('amount') || ticketNumber || '0') || 0;
+            const totalPaid = parseFloat(urlParams.get('totalPaid') || amount || '0') || amount;
+            const feesPaid = parseFloat(urlParams.get('feesPaid') || (totalPaid - amount) || '0') || 0;
+
+            document.getElementById('success-message').textContent = `Hi ${name}, your purchase of ${tickets} ticket${tickets > 1 ? 's' : ''} was successful!`;
+            document.getElementById('ticketNumberDisplay').textContent = `#${ticketNumber}`;
+            document.getElementById('ticketPaidDisplay').textContent = `$${totalPaid.toFixed(2)}`;
+            const feesText = feesPaid > 0 ? `Includes $${feesPaid.toFixed(2)} in fees to keep the raffle whole.` : 'No additional fees were applied.';
+            document.getElementById('ticketFeesDisplay').textContent = feesText;
+        });
+    </script>
+</body>
+</html>

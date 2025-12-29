@@ -1,0 +1,1180 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Kamcha Yisroel Admin Dashboard</title>
+    <meta name="description" content="Official Spin to Win Raffle for Mi Kamcha Yisroel Manage entries and support the community.">
+    <meta name="keywords" content="Mi Kamcha YisroelRaffle, Rolex, Charity, Spin to Win, Brooklyn, Community">
+    <meta name="author" content="Saul Setton">
+    <!-- Favicon using the updated local logo -->
+    <link rel="icon" type="image/png" href="/assets/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Tailwind Configuration for Mi Kamcha Yisroelolors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Logo Colors
+                        'ma-navy': '#0A0E27',
+                        'ma-gold': '#C9A961',
+                        // Darker shade for gradient start
+                        'ma-dark': '#050810', 
+                        // Complementary dark for inner panels/cards
+                        'ma-slate': '#0F1527', 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bebas-neue { font-family: 'Bebas Neue', sans-serif; }
+        
+        body {
+            background-color: #050810;
+            background-image: linear-gradient(135deg, #050810 0%, #0A0E27 100%);
+        }
+        
+        /* Style for the main container on the dashboard */
+        .dashboard-panel {
+            background: rgba(15, 21, 39, 0.4); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 4px solid #C9A961; 
+            box-shadow: 
+                0 0 15px rgba(255, 255, 255, 0.4),  
+                0 0 30px rgba(255, 255, 255, 0.1),  
+                0 0 45px 5px #C9A961,              
+                0 0 70px 15px #C9A96180;          
+        }
+
+        /* Fixed height and scrolling for the table on small screens */
+        .table-container {
+            /* Adjust max-height to ensure stats bar and header are visible */
+            max-height: 55vh; 
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Table specific styles for spreadsheet look */
+        #ticketsTable th {
+            background-color: #0A0E27; /* ma-navy */
+            color: #C9A961; /* ma-gold */
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer; /* Indicate clickable for sorting */
+        }
+        #ticketsTable td, #ticketsTable th {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+        /* Icon for sort direction */
+        .sort-icon {
+            margin-left: 0.5rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-black/40 py-4 px-4 md:px-12 w-full z-50 shadow-2xl backdrop-blur-sm border-b border-ma-gold/20">
+        <nav class="container mx-auto flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-3">
+                <img src="/assets/logo.png" alt="Mi Kamcha YisroelLogo" class="h-12 md:h-14 w-auto rounded-full ring-2 ring-ma-gold p-1">
+                <span class="bebas-neue text-xl md:text-2xl tracking-wider text-white">MI KAMCHA YISROEL</span>
+            </a>
+            <a href="/" class="py-2 px-5 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Back to Home</a>
+        </nav>
+    </header>
+
+    <main id="app-container" class="flex-grow flex items-center justify-center p-4">
+        
+        <!-- Loading State -->
+        <div id="loading-state" class="text-center">
+            <svg class="animate-spin h-8 w-8 text-ma-gold mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-gray-300">Authenticating...</p>
+        </div>
+
+        <!-- Login Form State -->
+        <div id="login-state" class="hidden w-full max-w-sm dashboard-panel rounded-xl p-8 space-y-4">
+            <h1 class="bebas-neue text-4xl text-ma-gold text-center mb-6">Admin Sign-In</h1>
+            <input type="email" id="admin-email" placeholder="Email" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+            <input type="password" id="admin-password" placeholder="Password" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+            <button id="signin-button" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Sign In</button>
+            <p id="login-error" class="text-sm text-red-400 text-center hidden"></p>
+        </div>
+
+        <!-- Dashboard State -->
+        <div id="dashboard-state" class="hidden w-full max-w-[1400px] dashboard-panel rounded-xl p-6 md:p-8 space-y-6">
+            <div class="flex justify-between items-center flex-wrap gap-4 border-b border-ma-gold/50 pb-4">
+                <h1 class="bebas-neue text-3xl text-ma-gold">Raffle Ticket Sales</h1>
+                <div class="flex items-center space-x-4">
+                    <p class="text-sm text-gray-300">Logged in as: <span id="user-email-display" class="font-semibold text-white"></span></p>
+                    <button id="signout-button" class="py-2 px-4 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors duration-300">Sign Out</button>
+                </div>
+            </div>
+
+            <!-- Total Stats Bar & Cleanup Button -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                <!-- Tickets Sold -->
+                <div class="bg-ma-slate/70 p-4 rounded-lg">
+                    <p class="bebas-neue text-2xl text-ma-gold" id="total-tickets-display">0/500</p>
+                    <p class="text-sm text-gray-400">Tickets Sold</p>
+                </div>
+                <!-- Total Revenue -->
+                <div class="bg-ma-slate/70 p-4 rounded-lg">
+                    <p class="bebas-neue text-2xl text-ma-gold" id="total-revenue-display">$0.00</p>
+                    <p class="text-sm text-gray-400">Total Revenue</p>
+                </div>
+                <!-- Reserved Tickets -->
+                <div class="bg-ma-slate/70 p-4 rounded-lg">
+                    <p class="bebas-neue text-2xl text-ma-gold" id="reserved-tickets-display">0</p>
+                    <p class="text-sm text-gray-400">Reserved Tickets</p>
+                </div>
+                <!-- Action Buttons Container -->
+                <div class="flex flex-col space-y-2 justify-center col-span-2 sm:col-span-1">
+                    <button id="cleanup-button" class="w-full py-2 px-4 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors duration-300 text-sm sm:text-base">
+                        Remove Reserved (> 7 min)
+                    </button>
+                    <button id="export-button" class="w-full py-2 px-4 rounded-full bg-green-600 text-white font-bold hover:bg-green-700 transition-colors duration-300 text-sm sm:text-base">
+                        Export Paid (.csv)
+                    </button>
+                    <button id="build-wheel-button" class="w-full py-2 px-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors duration-300 text-sm sm:text-base">
+                        Build Wheel
+                    </button>
+                    <button id="manual-spin-button" class="w-full py-2 px-4 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors duration-300 text-sm sm:text-base">
+                        Manual Spin
+                    </button>
+                    <button id="email-drawing-soon-button" class="w-full py-2 px-4 rounded-full bg-yellow-600 text-white font-bold hover:bg-yellow-700 transition-colors duration-300 text-sm sm:text-base">
+                        📧 Email: Drawing Soon
+                    </button>
+                    <button id="email-tickets-running-out-button" class="w-full py-2 px-4 rounded-full bg-orange-600 text-white font-bold hover:bg-orange-700 transition-colors duration-300 text-sm sm:text-base">
+                        ⚠️ Email: Tickets Running Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container (Scrollable) -->
+            <div class="table-container shadow-xl rounded-lg overflow-x-auto">
+                <table id="ticketsTable" class="w-full table-auto text-sm text-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="p-3" data-sort-key="id">Ticket #<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="status">Status<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="name">Purchaser Name<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="email">Email<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="phoneNumber">Phone<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="amountPaid">Amount<span class="sort-icon"></span></th>
+                            <th class="p-3" data-sort-key="timestamp">Timestamp<span class="sort-icon"></span></th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tickets-table-body">
+                        <!-- Data rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-black/40 py-8 mt-auto shadow-[0_-5px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm border-t border-ma-gold/20">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+                <div class="text-center md:text-left">
+                    <h3 class="text-ma-gold font-bold mb-2">Mi Kamcha Yisroel</h3>
+                    <p class="text-sm text-gray-400">Supporting our community through charitable initiatives.</p>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-ma-gold font-bold mb-2">Quick Links</h3>
+                    <ul class="text-sm text-gray-400 space-y-1">
+                        <li><a href="/" class="hover:text-ma-gold transition-colors">Home</a></li>
+                        <li><a href="/terms.html" class="hover:text-ma-gold transition-colors">Terms of Service</a></li>
+                        <li><a href="/privacy.html" class="hover:text-ma-gold transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="text-center md:text-right">
+                    <h3 class="text-ma-gold font-bold mb-2">Contact</h3>
+                    <p class="text-sm text-gray-400">
+                        <a href="sms:5166526950" class="hover:text-ma-gold transition-colors">Text: 516-652-6950</a>
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-ma-gold/20 pt-4 text-center">
+                <p class="text-sm text-gray-500 mb-1">
+                    &copy; 2026 Mi Kamcha Yisroel. All Rights Reserved.
+                </p>
+                <p class="text-sm text-gray-500">
+                    Website created by 
+                    <a href="sms:9295845753" class="text-ma-gold hover:text-ma-gold/80 transition-colors">Saul Setton</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- REQUIRED for calling Cloud Functions -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script> 
+    
+    <!-- SheetJS (xlsx) Library for Exporting Excel Files -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Wheel Modal -->
+    <div id="wheelModal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[150] p-4 hidden">
+        <div class="bg-ma-slate p-8 rounded-lg shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="bebas-neue text-3xl text-ma-gold">Spin The Wheel!</h2>
+                <button onclick="document.getElementById('wheelModal').classList.add('hidden')" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <canvas id="wheelCanvas" width="400" height="400" class="mx-auto mb-6 border-4 border-ma-gold rounded-full"></canvas>
+            <button id="spinWheelButton" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors">
+                SPIN THE WHEEL!
+            </button>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="winnerModal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[150] p-4 hidden">
+        <div class="bg-ma-slate p-8 rounded-lg shadow-2xl w-full max-w-md text-center">
+            <h2 class="bebas-neue text-4xl text-ma-gold mb-6">🎉 WINNER! 🎉</h2>
+            <div class="bg-ma-navy/50 p-6 rounded-lg mb-6 space-y-3">
+                <p class="text-gray-300">
+                    <span class="font-bold text-ma-gold">Name:</span>
+                    <span id="winner-name" class="text-white"></span>
+                </p>
+                <p class="text-gray-300">
+                    <span class="font-bold text-ma-gold">Ticket #:</span>
+                    <span id="winner-ticket" class="text-white"></span>
+                </p>
+                <p class="text-gray-300">
+                    <span class="font-bold text-ma-gold">Phone:</span>
+                    <span id="winner-phone" class="text-white"></span>
+                </p>
+            </div>
+            <button onclick="document.getElementById('winnerModal').classList.add('hidden')" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Spin Modal -->
+    <div id="manualSpinModal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[150] p-4 hidden">
+        <div class="bg-ma-slate p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="bebas-neue text-2xl text-ma-gold">Manual Cash Payment</h2>
+                <button onclick="document.getElementById('manualSpinModal').classList.add('hidden')" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="manual-name" placeholder="Full Name" class="w-full p-3 rounded-lg bg-ma-navy/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold">
+                <input type="email" id="manual-email" placeholder="Email" class="w-full p-3 rounded-lg bg-ma-navy/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold">
+                <input type="tel" id="manual-phone" placeholder="Phone" class="w-full p-3 rounded-lg bg-ma-navy/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold">
+                <p class="text-sm text-gray-300">Ticket number and amount will be assigned automatically.</p>
+                <button id="submitManualSpinButton" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors">
+                    Create Ticket - Waiting for Payment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[160] p-4 hidden">
+        <div class="bg-ma-slate/90 p-6 rounded-xl shadow-2xl w-full max-w-md border border-ma-gold">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="bebas-neue text-2xl text-ma-gold">Confirm Deletion</h2>
+                <button id="closeDeleteModal" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <p class="text-gray-200 mb-4">Are you sure you want to delete ticket <span id="deleteTicketLabel" class="font-bold text-ma-gold"></span>? This cannot be undone.</p>
+            <div class="flex space-x-3">
+                <button id="confirmDeleteButton" class="flex-1 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold">Yes, Delete</button>
+                <button id="cancelDeleteButton" class="flex-1 py-2 rounded-full bg-gray-600 hover:bg-gray-700 text-white font-semibold">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secret Refund Modal -->
+    <div id="refundModal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[170] p-4 hidden">
+        <div class="bg-ma-slate/90 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-ma-gold space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="bebas-neue text-2xl text-ma-gold">Refund a Ticket</h2>
+                <button id="closeRefundModal" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <p class="text-gray-200 text-sm">Select a paid order to refund through Stripe.</p>
+            <select id="refund-ticket-select" class="w-full p-3 rounded-lg bg-ma-navy/50 text-white focus:outline-none focus:ring-2 focus:ring-ma-gold"></select>
+            <p id="refundStatusText" class="text-sm text-gray-300"></p>
+            <div class="flex space-x-3">
+                <button id="confirmRefundButton" class="flex-1 py-2 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80">Send Refund</button>
+                <button id="cancelRefundButton" class="flex-1 py-2 rounded-full bg-gray-600 hover:bg-gray-700 text-white font-semibold">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const TOTAL_TICKETS = 500;
+
+        // IMPORTANT: Use the actual Firebase Config for your Mi Kamcha Yisroel project
+        const firebaseConfig = {
+            apiKey: "AIzaSyApFDhSZhG46VrfgrR7l-PnZNF_b1k3xlY",
+            authDomain: "mi-keamcha-yisrael.firebaseapp.com",
+            projectId: "mi-keamcha-yisrael",
+            storageBucket: "mi-keamcha-yisrael.firebasestorage.app",
+            messagingSenderId: "918243863180",
+            appId: "1:918243863180:web:c16c95d1e67f0a8d22e9a9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const functions = firebase.functions(); // Initialize functions
+        const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+
+        // --- DOM Elements ---
+        const loadingState = document.getElementById('loading-state');
+        const loginState = document.getElementById('login-state');
+        const dashboardState = document.getElementById('dashboard-state');
+        const adminEmailInput = document.getElementById('admin-email');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const signInButton = document.getElementById('signin-button');
+        const signOutButton = document.getElementById('signout-button');
+        const loginError = document.getElementById('login-error');
+        const ticketsTableBody = document.getElementById('tickets-table-body');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const totalTicketsDisplay = document.getElementById('total-tickets-display');
+        const totalRevenueDisplay = document.getElementById('total-revenue-display');
+        const reservedTicketsDisplay = document.getElementById('reserved-tickets-display');
+        const ticketsTable = document.getElementById('ticketsTable');
+        
+        const cleanupButton = document.getElementById('cleanup-button');
+        const exportButton = document.getElementById('export-button');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const deleteTicketLabel = document.getElementById('deleteTicketLabel');
+        const closeDeleteModalButton = document.getElementById('closeDeleteModal');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+        const refundModal = document.getElementById('refundModal');
+        const refundSelect = document.getElementById('refund-ticket-select');
+        const refundStatusText = document.getElementById('refundStatusText');
+        const confirmRefundButton = document.getElementById('confirmRefundButton');
+        const cancelRefundButton = document.getElementById('cancelRefundButton');
+        const closeRefundModalButton = document.getElementById('closeRefundModal');
+
+        // --- State Management ---
+        let tickets = []; // Global array to hold all fetched ticket data
+        let unsubscribe = null;
+        let sortColumn = 'id';
+        let sortDirection = 'asc';
+        let selectedDeleteTicketId = null;
+        let secretBuffer = '';
+
+        function renderState(state) {
+            loadingState.classList.add('hidden');
+            loginState.classList.add('hidden');
+            dashboardState.classList.add('hidden');
+
+            if (state === 'loading') {
+                loadingState.classList.remove('hidden');
+            } else if (state === 'login') {
+                loginState.classList.remove('hidden');
+            } else if (state === 'dashboard') {
+                dashboardState.classList.remove('hidden');
+            }
+        }
+
+        // --- Data Sorting Helper ---
+        function getNestedValue(obj, key) {
+            if (key === 'id') return parseInt(obj.id);
+            if (key === 'amountPaid') return parseFloat(obj.amountPaid || 0);
+            if (key === 'timestamp') return obj.timestamp ? obj.timestamp.toMillis() : 0;
+            return obj[key] ? obj[key].toString().toLowerCase() : '';
+        }
+
+        function sortData(key) {
+            if (sortColumn === key) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = key;
+                sortDirection = 'asc';
+            }
+
+            tickets.sort((a, b) => {
+                const valA = getNestedValue(a, key);
+                const valB = getNestedValue(b, key);
+
+                if (valA < valB) {
+                    return sortDirection === 'asc' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortDirection === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            renderTicketsTable(tickets);
+            updateSortIcons();
+        }
+
+        function updateSortIcons() {
+            ticketsTable.querySelectorAll('th').forEach(th => {
+                const key = th.getAttribute('data-sort-key');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '';
+                    if (key === sortColumn) {
+                        icon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+                    }
+                }
+            });
+        }
+
+
+        // --- Data Rendering ---
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function formatAmount(amount) {
+            if (typeof amount === 'number') {
+                return `$${amount.toFixed(2)}`;
+            }
+            return `$${parseFloat(amount || 0).toFixed(2)}`;
+        }
+
+        function renderTicketsTable(ticketData) {
+
+            ticketsTableBody.innerHTML = '';
+            let ticketsSold = 0;
+            let totalRevenue = 0;
+            let reservedCount = 0;
+
+            ticketData.forEach(ticket => {
+                // Ensure amountPaid is stored as a number for reliable math
+                const amount = parseFloat(ticket.amountPaid || ticket.amountDue || ticket.baseAmount || 0);
+
+                if (ticket.status === 'paid' || ticket.status === 'claimed') {
+                    ticketsSold++;
+                    totalRevenue += amount;
+                } else if (ticket.status === 'reserved') {
+                    reservedCount++;
+                }
+
+                const row = ticketsTableBody.insertRow();
+                // Set row background based on status
+                let rowBgClass = '';
+                if (ticket.status === 'paid') {
+                    rowBgClass = 'bg-ma-slate/70';
+                } else if (ticket.status === 'reserved') {
+                    rowBgClass = 'bg-ma-gold/20'; 
+                } else if (ticket.status === 'waiting_for_payment') {
+                    rowBgClass = 'bg-orange-900/30';
+                } else {
+                    rowBgClass = 'bg-red-900/50';
+                }
+
+                row.classList.add(rowBgClass, 'hover:bg-ma-slate/50');
+                
+                const statusTextColor = 
+                    ticket.status === 'paid' ? 'text-green-400' : 
+                    ticket.status === 'reserved' ? 'text-yellow-400' :
+                    ticket.status === 'waiting_for_payment' ? 'text-orange-400' : 'text-red-400';
+
+                const displayAmount = ticket.status === 'waiting_for_payment' ? 
+                    `${formatAmount(amount)} (DUE)` : formatAmount(amount);
+                const purchaseTimestamp = formatTimestamp(ticket.timestamp);
+
+                const actionButton = ticket.status === 'waiting_for_payment' ?
+                    `<button class="mark-paid-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors" data-ticket-id="${ticket.id}">Mark Paid</button>` :
+                    '-';
+
+                row.innerHTML = `
+                    <td class="font-bold text-lg text-ma-gold">${ticket.id}</td>
+                    <td class="${statusTextColor} font-semibold">${ticket.status.replace('_', ' ').toUpperCase()}</td>
+                    <td>${ticket.name || 'N/A'}</td>
+                    <td class="text-xs">${ticket.email || 'N/A'}</td>
+                    <td class="text-xs">${ticket.phoneNumber || 'N/A'}</td>
+                    <td>${displayAmount}</td>
+                    <td class="text-gray-400 text-xs">${purchaseTimestamp}</td>
+                    <td>
+                        <button class="delete-ticket-btn px-3 py-1 text-xs rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold" data-ticket-id="${ticket.id}">
+                            Delete
+                        </button>
+                    </td>
+                `;
+            });
+
+            // Add event listeners to all "Mark Paid" buttons
+            document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+                btn.addEventListener('click', markTicketAsPaid);
+            });
+
+            // Update stats bar
+            totalTicketsDisplay.textContent = `${ticketsSold}/${TOTAL_TICKETS}`;
+            totalRevenueDisplay.textContent = formatAmount(totalRevenue);
+            reservedTicketsDisplay.textContent = reservedCount.toString();
+        }
+
+        function openDeleteModal(ticketId) {
+            selectedDeleteTicketId = ticketId;
+            deleteTicketLabel.textContent = `#${ticketId}`;
+            deleteConfirmModal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            deleteConfirmModal.classList.add('hidden');
+            selectedDeleteTicketId = null;
+        }
+
+        function populateRefundSelect() {
+            if (!refundSelect) return;
+            const refundable = tickets.filter(t => (t.status === 'paid' || t.status === 'claimed') && t.paymentIntentId);
+            refundSelect.innerHTML = '';
+
+            if (refundable.length === 0) {
+                refundSelect.innerHTML = '<option>No refundable orders found</option>';
+                refundSelect.disabled = true;
+                return;
+            }
+
+            refundSelect.disabled = false;
+            refundable.sort((a, b) => parseInt(a.id) - parseInt(b.id)).forEach(ticket => {
+                const option = document.createElement('option');
+                option.value = ticket.id;
+                const paidAmount = formatAmount(ticket.amountPaid || ticket.baseAmount || 0);
+                option.textContent = `Ticket #${ticket.id} - ${ticket.name || 'N/A'} - ${paidAmount}`;
+                refundSelect.appendChild(option);
+            });
+        }
+
+        function openRefundModal() {
+            populateRefundSelect();
+            refundStatusText.textContent = '';
+            refundModal.classList.remove('hidden');
+        }
+
+        function closeRefundModal() {
+            refundModal.classList.add('hidden');
+            refundStatusText.textContent = '';
+        }
+        
+        // --- Mark Ticket as Paid ---
+        async function markTicketAsPaid(event) {
+            const ticketId = event.target.getAttribute('data-ticket-id');
+            
+            if (!confirm(`Mark ticket #${ticketId} as PAID? This will send a receipt email to the customer.`)) {
+                return;
+            }
+
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('Not authenticated. Please sign in again.');
+                    return;
+                }
+
+                const idToken = await user.getIdToken();
+                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+
+                const response = await fetch(`${functionsBaseUrl}/markTicketPaidHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ ticketId })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to mark ticket as paid');
+                }
+
+                alert(`✅ Ticket #${ticketId} marked as PAID and receipt email sent!`);
+            } catch (error) {
+                console.error('Error marking ticket as paid:', error);
+                alert(`❌ Failed to mark ticket as paid: ${error.message}`);
+            }
+        }
+        
+        // --- Event Listeners ---
+
+        ticketsTableBody.addEventListener('click', (event) => {
+            const deleteBtn = event.target.closest('.delete-ticket-btn');
+            if (deleteBtn) {
+                openDeleteModal(deleteBtn.dataset.ticketId);
+            }
+        });
+
+        const performDelete = async () => {
+            if (!selectedDeleteTicketId) return;
+            try {
+                const user = auth.currentUser;
+                if (!user) { alert('Not authenticated.'); return; }
+                const idToken = await user.getIdToken();
+
+                const response = await fetch(`${functionsBaseUrl}/deleteTicketHttp`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ ticketId: selectedDeleteTicketId })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to delete ticket');
+                alert(data.message);
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                closeDeleteModal();
+            }
+        };
+
+        confirmDeleteButton.addEventListener('click', performDelete);
+        closeDeleteModalButton.addEventListener('click', closeDeleteModal);
+        cancelDeleteButton.addEventListener('click', closeDeleteModal);
+
+        const performRefund = async () => {
+            const ticketId = refundSelect && refundSelect.value;
+            if (!ticketId) { refundStatusText.textContent = 'Select an order to refund.'; return; }
+            try {
+                refundStatusText.textContent = 'Processing refund...';
+                const user = auth.currentUser;
+                if (!user) { refundStatusText.textContent = 'Not authenticated.'; return; }
+                const idToken = await user.getIdToken();
+
+                const response = await fetch(`${functionsBaseUrl}/refundTicketPaymentHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ ticketId })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Refund failed');
+                refundStatusText.textContent = data.message;
+            } catch (error) {
+                refundStatusText.textContent = error.message;
+            }
+        };
+
+        confirmRefundButton.addEventListener('click', performRefund);
+        closeRefundModalButton.addEventListener('click', closeRefundModal);
+        cancelRefundButton.addEventListener('click', closeRefundModal);
+
+        // Add event listeners to table headers for sorting
+        ticketsTable.querySelectorAll('th[data-sort-key]').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort-key');
+                sortData(key);
+            });
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (dashboardState.classList.contains('hidden')) return;
+            secretBuffer += (event.key || '').toLowerCase();
+            if (secretBuffer.length > 6) {
+                secretBuffer = secretBuffer.slice(-6);
+            }
+            if (secretBuffer === 'hannah') {
+                secretBuffer = '';
+                openRefundModal();
+            }
+        });
+
+        // --- Ticket Cleanup Logic ---
+        cleanupButton.addEventListener('click', async () => {
+            const confirmMessage = `Are you sure you want to remove all reserved tickets older than 7 minutes? This action cannot be undone.`;
+            
+            if (!window.confirm(confirmMessage)) { 
+                return;
+            }
+
+            cleanupButton.disabled = true;
+            cleanupButton.textContent = "Processing...";
+            
+            try {
+                // Get the current user's ID token
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('Not authenticated. Please sign in again.');
+                    return;
+                }
+
+                const idToken = await user.getIdToken();
+                const response = await fetch(`${functionsBaseUrl}/deleteExpiredReservedTicketsHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ timeoutMinutes: 7 })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Cleanup failed');
+                }
+
+                alert(`Cleanup Complete: ${data.message}`);
+            } catch (error) {
+                console.error("Cleanup failed:", error);
+                alert(`Cleanup Failed: ${error.message}`);
+            } finally {
+                cleanupButton.disabled = false;
+                cleanupButton.textContent = "Remove Reserved (> 7 min)";
+                // Refresh the ticket data after cleanup
+                setupFirestoreListener();
+            }
+        });
+
+        // --- Export to CSV Logic ---
+        exportButton.addEventListener('click', () => {
+            if (tickets.length === 0) {
+                alert("No ticket data available to export.");
+                return;
+            }
+
+            // 1. Filter data to include only PAID orders
+            const paidData = tickets.filter(t => t.status === 'paid' || t.status === 'claimed');
+
+            if (paidData.length === 0) {
+                 alert("No PAID orders found to export.");
+                 return;
+            }
+
+            // 2. Create CSV header
+            let csv = 'Ticket #,Status,Name,Email,Phone,Amount Paid (USD),Purchase Timestamp,Payment Intent ID\n';
+
+            // 3. Add rows
+            paidData.forEach(t => {
+                const escapeCSV = (field) => {
+                    if (!field) return '';
+                    const str = String(field);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                };
+
+                csv += [
+                    t.id,
+                    t.status.toUpperCase(),
+                    escapeCSV(t.name || 'N/A'),
+                    escapeCSV(t.email || 'N/A'),
+                    escapeCSV(t.phoneNumber || 'N/A'),
+                    parseFloat(t.amountPaid || t.baseAmount || 0).toFixed(2),
+                    escapeCSV(formatTimestamp(t.timestamp)),
+                    escapeCSV(t.paymentIntentId || 'N/A')
+                ].map(escapeCSV).join(',') + '\n';
+            });
+
+            // 4. Download CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            link.setAttribute('href', URL.createObjectURL(blob));
+            link.setAttribute('download', `Mi_Keamcha_Yisrael_Paid_Tickets_${dateStr}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // --- Email Marketing Buttons ---
+        const emailDrawingSoonButton = document.getElementById('email-drawing-soon-button');
+        const emailTicketsRunningOutButton = document.getElementById('email-tickets-running-out-button');
+
+        emailDrawingSoonButton.addEventListener('click', async () => {
+            if (!window.confirm('Send "Drawing Soon" email to all subscribers? This will email everyone who has entered the raffle.')) {
+                return;
+            }
+
+            emailDrawingSoonButton.disabled = true;
+            emailDrawingSoonButton.textContent = "Sending...";
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('Not authenticated. Please sign in again.');
+                    return;
+                }
+
+                const idToken = await user.getIdToken();
+                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+
+                const response = await fetch(`${functionsBaseUrl}/sendDrawingSoonEmailHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Email send failed');
+                }
+
+                alert(`✅ Success! Sent ${data.sent} emails. ${data.failed > 0 ? `${data.failed} failed.` : ''}`);
+            } catch (error) {
+                console.error("Email send failed:", error);
+                alert(`❌ Email Failed: ${error.message}`);
+            } finally {
+                emailDrawingSoonButton.disabled = false;
+                emailDrawingSoonButton.textContent = "📧 Email: Drawing Soon";
+            }
+        });
+
+        emailTicketsRunningOutButton.addEventListener('click', async () => {
+            if (!window.confirm('Send "Tickets Running Out" email to all subscribers? This will show the current ticket count.')) {
+                return;
+            }
+
+            emailTicketsRunningOutButton.disabled = true;
+            emailTicketsRunningOutButton.textContent = "Sending...";
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('Not authenticated. Please sign in again.');
+                    return;
+                }
+
+                const idToken = await user.getIdToken();
+                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+
+                const response = await fetch(`${functionsBaseUrl}/sendTicketsRunningOutEmailHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Email send failed');
+                }
+
+                alert(`✅ Success! Sent ${data.sent} emails about ${data.ticketsLeft} tickets left. ${data.failed > 0 ? `${data.failed} failed.` : ''}`);
+            } catch (error) {
+                console.error("Email send failed:", error);
+                alert(`❌ Email Failed: ${error.message}`);
+            } finally {
+                emailTicketsRunningOutButton.disabled = false;
+                emailTicketsRunningOutButton.textContent = "⚠️ Email: Tickets Running Out";
+            }
+        });
+
+        // --- Wheel Drawing Function ---
+        let wheelData = [];
+        let isSpinning = false;
+
+        function drawWheel(canvas, currentRotation = 0) {
+            if (wheelData.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const sliceAngle = (Math.PI * 2) / wheelData.length;
+            const colors = ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#1E90FF', '#9370DB', '#FF1493', '#00CED1'];
+
+            wheelData.forEach((item, index) => {
+                const startAngle = index * sliceAngle + currentRotation;
+                const endAngle = startAngle + sliceAngle;
+
+                // Draw slice
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw text
+                const textAngle = startAngle + sliceAngle / 2;
+                const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
+                const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+
+                ctx.save();
+                ctx.translate(textX, textY);
+                ctx.rotate(textAngle + Math.PI / 2);
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.name.substring(0, 10), 0, 0);
+                ctx.restore();
+            });
+
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 15, 0, Math.PI * 2);
+            ctx.fillStyle = '#B89A5F';
+            ctx.fill();
+
+            // Draw pointer at top
+            ctx.beginPath();
+            ctx.moveTo(centerX - 10, 10);
+            ctx.lineTo(centerX + 10, 10);
+            ctx.lineTo(centerX, 25);
+            ctx.closePath();
+            ctx.fillStyle = '#B89A5F';
+            ctx.fill();
+        }
+
+        // --- Build Wheel Button ---
+        document.getElementById('build-wheel-button').addEventListener('click', () => {
+            const paidTickets = tickets.filter(t => t.status === 'paid' || t.status === 'claimed');
+            
+            if (paidTickets.length === 0) {
+                alert('No paid tickets available to build wheel.');
+                return;
+            }
+
+            wheelData = paidTickets;
+            const canvas = document.getElementById('wheelCanvas');
+            drawWheel(canvas);
+            document.getElementById('wheelModal').classList.remove('hidden');
+            isSpinning = false;
+        });
+
+        // --- Manual Spin Button ---
+        document.getElementById('manual-spin-button').addEventListener('click', () => {
+            document.getElementById('manualSpinModal').classList.remove('hidden');
+        });
+
+        // --- Submit Manual Spin ---
+        document.getElementById('submitManualSpinButton').addEventListener('click', async () => {
+            const name = document.getElementById('manual-name').value.trim();
+            const email = document.getElementById('manual-email').value.trim();
+            const phone = document.getElementById('manual-phone').value.trim();
+            if (!name || !email || !phone) {
+                alert('Please fill all fields with valid data.');
+                return;
+            }
+
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('Not authenticated. Please sign in again.');
+                    return;
+                }
+
+                const idToken = await user.getIdToken();
+                const response = await fetch(`${functionsBaseUrl}/addManualTicketHttp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ name, email, phone })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to add manual ticket');
+                }
+
+                // Close modal and clear form
+                document.getElementById('manualSpinModal').classList.add('hidden');
+                document.getElementById('manual-name').value = '';
+                document.getElementById('manual-email').value = '';
+                document.getElementById('manual-phone').value = '';
+
+                const assignedTicket = data.ticketNumber || data.ticketId;
+                alert(`Manual ticket #${assignedTicket} created and marked as paid.`);
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+
+        // --- Spin Wheel ---
+        document.getElementById('spinWheelButton').addEventListener('click', async () => {
+            if (isSpinning || wheelData.length === 0) return;
+
+            isSpinning = true;
+            const canvas = document.getElementById('wheelCanvas');
+            const spinButton = document.getElementById('spinWheelButton');
+            spinButton.disabled = true;
+            spinButton.textContent = 'SPINNING...';
+
+            // Spin animation
+            const duration = 4000; // 4 seconds
+            const rotations = Math.random() * 10 + 5; // 5-15 rotations
+            const startTime = Date.now();
+            const targetRotation = (rotations * Math.PI * 2) + (Math.random() * Math.PI * 2);
+
+            const spin = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease-out cubic
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                const currentRotation = targetRotation * easeProgress;
+
+                drawWheel(canvas, currentRotation);
+
+                if (progress < 1) {
+                    requestAnimationFrame(spin);
+                } else {
+                    // Determine winner
+                    const sliceAngle = (Math.PI * 2) / wheelData.length;
+                    const normalizedRotation = (targetRotation % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+                    const topSlice = (Math.PI * 2 - (normalizedRotation + Math.PI * 2 / 2)) % (Math.PI * 2);
+                    const winnerIndex = Math.floor(topSlice / sliceAngle) % wheelData.length;
+                    
+                    const winner = wheelData[winnerIndex];
+                    document.getElementById('winner-name').textContent = winner.name;
+                    document.getElementById('winner-ticket').textContent = winner.id;
+                    document.getElementById('winner-phone').textContent = winner.phoneNumber || 'N/A';
+
+                    document.getElementById('wheelModal').classList.add('hidden');
+                    document.getElementById('winnerModal').classList.remove('hidden');
+
+                    isSpinning = false;
+                    spinButton.disabled = false;
+                    spinButton.textContent = 'SPIN THE WHEEL!';
+                }
+            };
+
+            requestAnimationFrame(spin);
+        });
+
+        // --- Firebase Listener ---
+        function setupFirestoreListener() {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+
+            // Query only paid, claimed, and reserved tickets
+            const q = db.collection('spin_tickets'); 
+            
+            unsubscribe = q.onSnapshot(querySnapshot => {
+                const ticketsData = [];
+                querySnapshot.forEach(doc => {
+                    // Normalize the amountPaid field from string to number if needed during fetch
+                    const data = doc.data();
+                    if (data.amountPaid && typeof data.amountPaid === 'string') {
+                        data.amountPaid = parseFloat(data.amountPaid);
+                    } else if (data.baseAmount && typeof data.baseAmount === 'string') {
+                        data.baseAmount = parseFloat(data.baseAmount);
+                    }
+                    ticketsData.push({ id: doc.id, ...data });
+                });
+                
+                tickets = ticketsData; 
+                // Initial render defaults to sorting by ticket ID ascending
+                sortData(sortColumn); 
+            }, error => {
+                console.error("Error reading Firestore:", error);
+                alert("Error loading ticket data. Check Firestore Security Rules.");
+            });
+        }
+
+
+        // --- Authentication Logic ---
+        signInButton.addEventListener('click', async () => {
+            const email = adminEmailInput.value.trim();
+            const password = adminPasswordInput.value.trim();
+            loginError.classList.add('hidden');
+
+            if (!email || !password) {
+                loginError.textContent = 'Please enter both email and password.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                signInButton.textContent = 'Signing In...';
+                signInButton.disabled = true;
+
+                await auth.signInWithEmailAndPassword(email, password);
+                
+            } catch (error) {
+                console.error("Login failed:", error.code, error.message);
+                loginError.textContent = 'Sign-in failed. Check credentials.';
+                loginError.classList.remove('hidden');
+            } finally {
+                signInButton.textContent = 'Sign In';
+                signInButton.disabled = false;
+            }
+        });
+
+        signOutButton.addEventListener('click', async () => {
+            if (unsubscribe) {
+                unsubscribe(); 
+            }
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error("Sign-out error:", error);
+            }
+        });
+
+        // --- Auth State Observer ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // *** ENFORCED SECURITY CHECK: Must have an email (i.e., not Anonymous) ***
+                if (!user.email) {
+                    console.warn("Attempted access by non-email user (likely anonymous). Signing out.");
+                    auth.signOut();
+                    renderState('login');
+                    return; 
+                }
+                
+                userEmailDisplay.textContent = user.email;
+                setupFirestoreListener();
+                renderState('dashboard');
+            } else {
+                renderState('login');
+                // Clean up UI/inputs on sign-out
+                adminEmailInput.value = '';
+                adminPasswordInput.value = '';
+                loginError.classList.add('hidden');
+                ticketsTableBody.innerHTML = '';
+            }
+        });
+
+        // Start by rendering the loading state
+        renderState('loading');
+    </script>
+</body>
+</html>

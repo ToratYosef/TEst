@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Kamcha Yisroel - Spin to Win Raffle</title>
+
+    <!-- Metadata for SEO and Identity -->
+    <meta name="description" content="Official Spin to Win Raffle for Mi Kamcha Yisroel. Win premium prizes that support the community.">
+    <meta name="keywords" content="Mi Kamcha Yisroel, Raffle, Rolex, Charity, Spin to Win, Brooklyn, Community">
+    <meta name="author" content="Saul Setton">
+    <!-- Open Graph for Link Preview -->
+    <meta property="og:title" content="Mi Kamcha Yisroel - Spin to Win Raffle">
+    <meta property="og:description" content="Join the raffle to support saving souls! Win a Rolex, vacation, or cash prizes.">
+    <meta property="og:image" content="https://mikamcharaffle.com/assets/flyer.jpeg">
+    <meta property="og:type" content="website">
+    <!-- Favicon using the updated local logo -->
+    <link rel="icon" type="image/png" href="/assets/logo.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+       <!-- Custom Tailwind Configuration for Mi Kamcha Yisroel Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Logo Colors
+                        'ma-navy': '#0A0E27',
+                        'ma-gold': '#C9A961',
+                        // Darker shade for gradient start
+                        'ma-dark': '#050810', 
+                        // Complementary dark for inner panels/cards
+                        'ma-slate': '#0F1527', 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        /* --- General & Global Styles (Merged) --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Applying new Black gradient with gold accents */
+            background-color: #050810;
+            background-image: linear-gradient(135deg, #050810 0%, #0A0E27 100%);
+            overflow-x: hidden;
+        }
+        .bebas-neue {
+            font-family: 'Bebas Neue', sans-serif;
+        }
+
+        /* Layered starry overlay for depth */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+        body::before {
+            background: radial-gradient(circle at 20% 20%, rgba(184, 154, 95, 0.15), transparent 50%),
+                        radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.08), transparent 55%),
+                        radial-gradient(circle at 15% 75%, rgba(184, 154, 95, 0.12), transparent 55%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.06), transparent 60%);
+            filter: blur(0.4px);
+        }
+        body::after {
+            background-image: url('data:image/svg+xml,%3Csvg width="180" height="180" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Ccircle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.08)"/%3E%3Ccircle cx="50" cy="60" r="1" fill="rgba(184,154,95,0.08)"/%3E%3Ccircle cx="90" cy="25" r="1" fill="rgba(255,255,255,0.08)"/%3E%3Ccircle cx="40" cy="15" r="1" fill="rgba(184,154,95,0.08)"/%3E%3Ccircle cx="70" cy="85" r="1" fill="rgba(255,255,255,0.08)"/%3E%3C/svg%3E');
+            opacity: 0.45;
+        }
+
+        /* --- Custom Glow Class for Prize Card --- */
+        .gold-white-glow {
+            /* Subtle goldish border */
+            border: 2px solid rgba(201, 169, 97, 0.5);
+            /* Subtle glow effect */
+            box-shadow: 
+                0 0 12px rgba(201, 169, 97, 0.3),  /* Soft gold glow */
+                0 0 24px rgba(201, 169, 97, 0.15);  /* Medium gold shadow */
+        }
+
+        /* --- Spin Page Specific Styles --- */
+        .glass-panel {
+            /* Using a darker black transparency */
+            background: rgba(15, 21, 39, 0.3); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* Subtle gold glow - not too bright */
+            border: 2px solid rgba(201, 169, 97, 0.3);
+            box-shadow: 
+                0 0 12px rgba(201, 169, 97, 0.2),  /* Soft gold glow */
+                inset 0 0 10px rgba(201, 169, 97, 0.08);  /* Subtle inner glow */
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        /* Spinner now uses ma-gold border */
+        .spinner {
+          animation: spin 0.8s linear infinite;
+        }
+
+        /* Continuous Flashing for Spin */
+        .flashing-text {
+            animation: flash 0.1s linear infinite alternate;
+        }
+        @keyframes flash {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Target Blink for Result (Final 3-second display) */
+        .result-blink-red {
+            animation: red-flash 0.3s linear infinite alternate;
+            color: #ef4444 !important; /* Keep Red for urgency */
+        }
+        @keyframes red-flash {
+            from { opacity: 1; color: #ef4444; }
+            /* Fade to the new Gold color for contrast */
+            to { opacity: 0.2; color: #B89A5F; } 
+        }
+        .relative-container {
+            position: relative;
+        }
+
+        /* Floating decorative orbs */
+        .orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(0px);
+            opacity: 0.3;
+            pointer-events: none;
+            animation: float 16s ease-in-out infinite;
+        }
+        .orb:nth-child(1) {
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(184, 154, 95, 0.35), transparent 70%);
+            top: -60px;
+            right: -40px;
+        }
+        .orb:nth-child(2) {
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(27, 50, 95, 0.55), transparent 65%);
+            bottom: -40px;
+            left: -30px;
+            animation-delay: 3s;
+        }
+        .orb:nth-child(3) {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(16, 29, 56, 0.5), transparent 60%);
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 6s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.05); }
+        }
+
+        .glass-outline {
+            background: rgba(5, 8, 16, 0.6);
+            border: 1px solid rgba(201, 169, 97, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201, 169, 97, 0.6), transparent);
+        }
+
+        /* FIX: Updated glow-button CSS for shimmer effect containment */
+        .glow-button {
+            position: relative;
+            overflow: hidden;
+            z-index: 1; /* Ensure text is above shimmer */
+            isolation: isolate; /* Create new stacking context */
+        }
+        .glow-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%; /* Start off-screen left but contained */
+            width: 50%; /* Width of the shimmer effect */
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+            transform: skewX(-20deg); /* Angle of the shimmer */
+            transition: none; /* Remove initial transition */
+            opacity: 0;
+            border-radius: inherit; /* FIX: Inherit parent's border-radius for clean clipping */
+        }
+        .glow-button:hover::after {
+            animation: shimmer 1s infinite;
+            opacity: 1;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; } /* Stay within button */
+        }
+        /* END FIX */
+
+        /* Modal-specific styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: rgba(43, 49, 63, 0.9);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s ease-out;
+        }
+
+        /* --- STATIC SCOREBOARD STYLES --- */
+        .digit-box {
+            width: 60px;
+            height: 90px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(201, 169, 97, 0.3);
+            background-color: #0A0E27; /* Maintain a dark digital background */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(201, 169, 97, 0.25);
+        }
+        @media (min-width: 768px) {
+            .digit-box {
+                width: 80px;
+                height: 120px;
+            }
+        }
+        
+        .digit-text {
+            /* Now using the goldish color */
+            color: #C9A961; 
+            font-size: 5rem;
+            line-height: 1; 
+            font-family: 'Bebas Neue', sans-serif;
+            text-align: center;
+            transform: translateY(10%);
+            text-shadow: 0 0 10px rgba(201, 169, 97, 0.6);
+        }
+        @media (min-width: 768px) {
+            .digit-text {
+                font-size: 7rem;
+            }
+        }
+        /* Mobile-specific Header adjustments for centering */
+        @media (max-width: 767px) {
+            .mobile-header-grid {
+                /* Use a subtle grid for mobile alignment: logo/button on sides, title in center column */
+                display: grid;
+                /* Updated grid to 0.5rem gap, and using auto 1fr auto */
+                grid-template-columns: auto 1fr auto; 
+                gap: 0.5rem;
+                align-items: center;
+                width: 100%;
+            }
+            .mobile-title {
+                text-align: center;
+                min-width: 0; 
+                line-height: 1.1; 
+                font-size: 0.9rem; 
+                justify-self: center; 
+            }
+            .mobile-logo-wrapper {
+                grid-column: 1;
+                justify-self: start;
+            }
+            .mobile-button-wrapper {
+                grid-column: 3;
+                justify-self: end;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .glass-panel {
+                padding: 1.5rem !important;
+                border-width: 2px;
+            }
+
+            .glass-outline {
+                padding: 1.5rem;
+            }
+
+            .gold-white-glow {
+                border-width: 3px;
+            }
+
+            .hero-metrics {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+                text-align: left;
+            }
+
+            .hero-metrics > div {
+                width: 100%;
+            }
+
+            .digit-box {
+                width: 52px;
+                height: 78px;
+            }
+
+            .digit-text {
+                font-size: 4rem;
+            }
+
+            .modal-content {
+                width: 100%;
+                margin: 0 1rem;
+                padding: 1.5rem;
+            }
+
+            .orb:nth-child(1) {
+                width: 160px;
+                height: 160px;
+                top: -40px;
+                right: -20px;
+            }
+
+            .orb:nth-child(2) {
+                width: 130px;
+                height: 130px;
+                bottom: -20px;
+                left: -10px;
+            }
+
+            .orb:nth-child(3) {
+                width: 220px;
+                height: 220px;
+            }
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+    <!-- Global Loading Overlay -->
+    <div id="globalLoadingOverlay" class="fixed inset-0 z-[100] bg-ma-dark/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 hidden">
+        <div class="spinner w-12 h-12 border-4 border-t-4 border-ma-gold border-opacity-20 rounded-full"></div>
+        <p id="globalSpinnerText" class="text-white text-xl font-semibold">Loading...</p>
+    </div>
+
+    <!-- Custom Popup Modal -->
+    <div id="customPopupOverlay" class="fixed inset-0 z-[101] bg-black/75 flex items-center justify-center p-4 hidden">
+        <div id="customPopup" class="bg-ma-slate p-8 rounded-lg shadow-2xl max-w-sm w-full text-center scale-95 transition-all duration-300">
+            <h2 id="popupTitle" class="bebas-neue text-3xl font-bold text-ma-gold mb-4"></h2>
+            <p id="popupMessage" class="text-gray-300 text-lg mb-6"></p>
+            <button id="popupCloseButton" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors">OK</button>
+        </div>
+    </div>
+
+    <!-- Spinning Wheel Modal -->
+    <div id="spinModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Spinning... </h2>
+            <!-- Updated border color to Gold -->
+            <div class="bg-slate-700/60 w-64 h-64 mx-auto flex items-center justify-center rounded-full shadow-lg border-4 border-ma-gold/20 mb-8">
+                <p id="modalFlashingNumber" class="bebas-neue text-8xl font-bold text-white"></p> 
+            </div>
+            <div id="modalResultDisplay" class="hidden">
+                <p class="bebas-neue text-4xl font-bold text-ma-gold">Your Ticket Price:</p>
+                <p id="modalWinningTicketNumber" class="bebas-neue text-6xl font-bold text-white mt-2"></p> 
+            </div>
+        </div>
+    </div>
+
+    <!-- Header (Fixed to the top) -->
+    <header class="bg-black/40 py-4 px-4 md:px-12 fixed w-full top-0 z-50 shadow-2xl backdrop-blur-sm">
+        <nav class="container mx-auto flex justify-between items-center">
+
+            <!-- Mobile/Desktop Header Structure -->
+            <div class="hidden md:flex items-center w-full justify-between space-x-8">
+                <!-- Desktop: Logo Left -->
+                <a href="#home" class="flex-shrink-0 flex items-center space-x-3 z-10">
+                    <img src="/assets/logo.png" alt="Mi Kamcha Yisroel Logo" class="h-14 sm:h-16 w-auto rounded-full ring-2 ring-ma-gold p-1">
+                    <span class="bebas-neue text-2xl tracking-[0.3rem] text-white hidden lg:block">MI KAMCHA YISROEL</span>
+                </a>
+                <!-- Navigation Links -->
+                <div class="flex-1 flex justify-center">
+                </div>
+                <div class="flex-shrink-0">
+                    <a href="#spin-to-win-section" class="py-2 px-5 rounded-full bg-ma-gold text-ma-navy font-bold transition-colors duration-300 glow-button whitespace-nowrap">Enter the Raffle</a>
+                </div>
+            </div>
+
+            <div class="md:hidden mobile-header-grid w-full">
+                
+                <!-- 1. Logo (Left, Wider) -->
+                <div class="mobile-logo-wrapper">
+                <a href="/" class="flex-shrink-0 flex items-center space-x-2 z-10">
+                    <!-- Logo size increased on mobile -->
+                    <img src="/assets/logo.png" alt="Mi Kamcha Yisroel Logo" class="h-16 w-auto rounded-full ring-2 ring-ma-gold p-1">
+                </a>
+                </div>
+
+                <!-- 2. Responsive Title (Center) -->
+                <h2 class="mobile-title bebas-neue text-base font-bold text-white tracking-widest px-2">
+                    MI KAMCHA YISROEL
+                </h2>
+
+                <!-- 3. Buy Ticket Button -->
+                <div class="mobile-button-wrapper">
+                    <a href="#spin-to-win-section" class="inline-flex items-center justify-center text-xs font-semibold bg-ma-gold text-ma-navy rounded-full px-3 py-2 shadow-lg shadow-ma-gold/20">Raffle</a>
+                </div>
+            </div>
+
+        </nav>
+    </header>
+    <!-- End Header -->
+
+    <main class="flex-grow pt-24 sm:pt-28 px-4 md:px-8 lg:px-16">
+        <section id="home" class="relative overflow-hidden mb-20">
+            <div class="absolute inset-0 pointer-events-none">
+                <span class="orb"></span>
+                <span class="orb"></span>
+                <span class="orb"></span>
+            </div>
+            <div class="container mx-auto rounded-3xl px-6 sm:px-10 lg:px-14 py-14 relative">
+                <div class="text-center space-y-6">
+                    <div class="inline-flex items-center space-x-2 bg-white/5 border border-ma-gold/30 text-ma-gold px-4 py-2 rounded-full text-xs uppercase tracking-[0.25em]">
+                        <span>Mi Kamcha Yisroel</span>
+                    </div>
+                    <h1 class="bebas-neue text-4xl sm:text-6xl lg:text-7xl leading-none text-white drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]">
+                        Mi Kamcha Yisroel Raffle
+                    </h1>
+                    <p class="text-base sm:text-lg text-gray-300 leading-relaxed max-w-2xl mx-auto">
+                        Join the raffle to support saving souls!
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="#spin-to-win-section" class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-ma-gold text-ma-navy font-bold glow-button shadow-lg shadow-ma-gold/30">
+                            Enter the Raffle
+                        </a>
+                        <a href="#spin-to-win-section" class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-ma-gold text-ma-gold font-semibold hover:bg-ma-gold/10 transition">
+                            Learn More
+                        </a>
+                    </div>
+
+                    <!-- Media Row: Flyer + Video Placeholder -->
+                    <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                        <!-- Flyer Placeholder (Left) -->
+                        <div class="glass-panel rounded-2xl p-4 border border-ma-gold/40 shadow-xl flex items-center justify-center">
+                            <img src="/assets/flyer.jpeg" 
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x500/1e293b/B89A5F?text=Event+Flyer'"
+                                alt="Event Flyer" class="w-full h-auto rounded-xl object-contain max-h-[600px]">
+                        </div>
+
+                        <!-- Video Embed (Right) -->
+                        <div class="glass-panel rounded-2xl p-4 border border-ma-gold/40 shadow-xl flex items-center justify-center">
+                            <div class="relative w-full max-w-sm aspect-[9/16] overflow-hidden rounded-xl border border-ma-gold/30 bg-black/40">
+                                <video 
+                                    class="absolute inset-0 w-full h-full object-cover"
+                                    controls
+                                    controlsList="nodownload"
+                                    playsinline
+                                    preload="metadata"
+                                    poster="/assets/video-poster.jpg"
+                                >
+                                    <source src="https://mi-keamcha-yisrael.web.app/assets/Video.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="spin-to-win-section">
+            <div class="container mx-auto text-center p-4 sm:p-6 md:p-12 glass-panel rounded-2xl shadow-2xl">
+                <h1 class="bebas-neue text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-ma-gold mb-4 drop-shadow-lg">
+                    Spin to Win - 5 Guaranteed Winners!
+                </h1>
+                <p class="text-base sm:text-lg md:text-xl text-gray-300 mb-8">
+                    You might pay as little as $1 and win one of the grand prize (1 Per Winner)!
+                </p>
+
+                <!-- Live Counter (STATIC SCOREBOARD STRUCTURE) -->
+                <div class="mb-12">
+                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Tickets Left (1 - 500)</h2>
+                    <div id="ticketsLeftDisplay" class="flex justify-center space-x-2 md:space-x-3 lg:space-x-4">
+                        <div id="digit-hundreds" class="digit-box"></div>
+                        <div id="digit-tens" class="digit-box"></div>
+                        <div id="digit-ones" class="digit-box"></div>
+                    </div>
+                </div>
+                <!-- End Live Counter -->
+
+                <!-- How it Works Section -->
+                <div class="mb-12">
+                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">How It Works</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
+                            <p class="bebas-neue text-4xl text-ma-gold mb-2">1</p>
+                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Prepay</h3>
+                            <p class="text-gray-300">Submit payment and get charged a random amount (between $1 - $500).</p>
+                        </div>
+                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
+                            <p class="bebas-neue text-4xl text-ma-gold mb-2">2</p>
+                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Take a Chance</h3>
+                            <p class="text-gray-300">The system will assign you a random number, which is your ticket price.</p>
+                        </div>
+                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
+                            <p class="bebas-neue text-4xl text-ma-gold mb-2">3</p>
+                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Win Big!</h3>
+                            <p class="text-gray-300">Your single ticket number gives you a chance at the grand prize!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Form Section -->
+                <div class="relative-container glass-panel p-6 rounded-2xl shadow-2xl max-w-lg mx-auto mb-12" style="border: 2px solid rgba(201, 169, 97, 0.5); box-shadow: 0 0 12px rgba(201, 169, 97, 0.3), 0 0 24px rgba(201, 169, 97, 0.15);">
+                    <div id="initial-form" class="space-y-4" autocomplete="off" novalidate>
+                        <h2 class="bebas-neue text-3xl font-bold text-white mb-4">Enter for a Chance to Win!</h2>
+                        <div>
+                            <input type="text" id="spin-name" name="name" placeholder="Full Name" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
+                        </div>
+                        <div>
+                            <input type="email" id="spin-email" name="email" placeholder="Email Address" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
+                        </div>
+                        <div>
+                            <input type="tel" id="spin-phone" name="phone" placeholder="Phone Number" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
+                        </div>
+
+                        <div class="bg-ma-slate/40 p-4 rounded-lg border border-ma-gold/30">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" id="cover-fees" class="h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer flex-shrink-0">
+                                <label for="cover-fees" class="font-semibold text-white cursor-pointer">I would like to pay the card fees too</label>
+                            </div>
+                            <div class="mt-3 ml-8 flex items-center space-x-2 text-gray-300">
+                                <span id="cover-fees-tooltip-wrapper" class="relative inline-flex items-center cursor-pointer select-none">
+                                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-ma-gold text-xs font-bold text-ma-gold mr-2">?</span>
+                                    <span class="text-xs">2.2% + $0.30 per transaction</span>
+                                    <span id="cover-fees-tooltip" class="tooltip hidden absolute bottom-full left-0 mb-2 w-56 bg-black/80 text-xs text-gray-100 p-2 rounded-lg border border-ma-gold whitespace-normal z-10">If selected, we will add 2.2% + $0.30 so your full ticket amount goes to the raffle.</span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <button id="spin-proceed-to-payment" class="w-full py-3 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 relative overflow-hidden glow-button">
+                            <span class="button-text">Proceed to Payment</span>
+                            <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-ma-navy border-opacity-20 rounded-full hidden"></div>
+                        </button>
+                    </div>
+
+                     <!-- Stripe payment element container -->
+                     <div id="spin-stripe-payment-element" class="hidden">
+                            <h2 class="bebas-neue text-3xl font-bold text-white mb-4">Payment Details</h2>
+                         <div class="mb-4 text-sm text-gray-200 bg-ma-slate/50 p-3 rounded-lg">
+                             <p class="font-semibold text-ma-gold mb-1">Charges include:</p>
+                             <ul class="list-disc list-inside space-y-1 text-gray-200">
+                                 <li>✨ International cards (online): +1% extra</li>
+                                 <li>✨ Currency conversion: +1% extra</li>
+                             </ul>
+                         </div>
+                         <div id="spin-payment-element-container"></div>
+                         <button id="spin-stripe-pay-button" class="w-full py-3 mt-4 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 hidden glow-button">
+                             <span class="button-text">Pay Now</span>
+                             <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-ma-navy border-opacity-20 rounded-full hidden"></div>
+                         </button>
+                     </div>
+                </div>
+
+                <!-- Prize Display Section -->
+                <div class="mb-12">
+                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Prizes</h2>
+                    <!-- First Row: Rolex Prize -->
+                    <div class="mb-8">
+                        <div class="w-full">
+                            <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
+                                data-name="1st Prize: Oyster Perpetual Datejust"
+                                data-desc="Take home an Oyster Perpetual Datejust valued at $17,500. Timeless elegance and unmatched craftsmanship."
+                                data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/rolex1.png"
+                                onclick="showPrizeModal(this)">
+                                <h3 class="bebas-neue text-3xl text-ma-gold mb-4">1st Prize: Oyster Perpetual Datejust ($17.5K Value)</h3>
+                                <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/rolex1.png"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=First+Prize'"
+                                    alt="Oyster Perpetual Datejust" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
+                                <p class="text-white text-base font-semibold">A luxury timepiece worth $17,500 (Or 17.5k Cash) awaits the top winner.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Second Row: Other 4 Prizes -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 max-w-full mx-auto gap-8">
+                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
+                            data-name="2nd Prize: Surfside Florida Getaway"
+                            data-desc="Enjoy a 4-night, 5-day vacation on Collins Ave in Surfside, Florida. Sun, sand, and relaxation. (2 Plane tickets included from anywhere in the US)"
+                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/miami.jpg"
+                            onclick="showPrizeModal(this)">
+                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">2nd Prize: Surfside Florida Vacation</h3>
+                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/miami.jpg"
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Vacation'"
+                                alt="Surfside Florida Vacation" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
+                            <p class="text-white text-base font-semibold">Stay 4 nights and 5 days on Collins Ave (2 Plane tickets included from anywhere in the US) or take a cash payout.</p>
+                        </div>
+                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
+                            data-name="3rd Prize: $3,000 Cash"
+                            data-desc="Win $3,000 in cash to spend however you like."
+                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash2.jpg"
+                            onclick="showPrizeModal(this)">
+                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">3rd Prize:<br>$3,000 Cash<br></h3>
+                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash2.jpg"
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Cash+Prize'"
+                                alt="$3,000 Cash" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
+                            <p class="text-white text-base font-semibold">Pocket $3,000 in cash as the third prize winner.</p>
+                        </div>
+                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
+                            data-name="4th Prize: $2,000 Cash"
+                            data-desc="Receive $2,000 in cash as the fourth prize."
+                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash1.jpeg"
+                            onclick="showPrizeModal(this)">
+                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">4th Prize:<br>$2,000 Cash<br></h3>
+                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash1.jpeg"
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Cash+Prize'"
+                                alt="$2,000 Cash" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
+                            <p class="text-white text-base font-semibold">Pocket $2,000 in cash as the fourth prize winner.<br><br></p>
+                        </div>
+                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
+                            data-name="5th Prize: $1,000 to Salt"
+                            data-desc="Win $1,000 to enjoy at Salt restaurant. Or Get an equivalent cash payout."
+                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/salt.jpg"
+                            onclick="showPrizeModal(this)">
+                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">5th Prize:<br>$1,000 to Salt<br></h3>
+                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/salt.jpg"
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Salt+Prize'"
+                                alt="$1,000 to Salt" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
+                            <p class="text-white text-base font-semibold">Enjoy $1,000 worth of dining at Salt. Or Get an equivalent cash payout!<br><br></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Removed About Section -->
+
+    </main>
+    
+    <!-- Prize Modal Structure (Kept the same) -->
+    <div id="prize-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[110] p-4 transition-opacity duration-300 opacity-0" 
+        onclick="hidePrizeModal(event)">
+        <div class="bg-slate-950 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95" 
+            id="modal-content-container" onclick="event.stopPropagation()">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-slate-800">
+                <!-- Title updated to Gold -->
+                <h3 id="modal-title" class="bebas-neue text-3xl text-ma-gold">Prize Details</h3>
+                <button onclick="hidePrizeModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-8 h-8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 md:flex md:space-x-6">
+                <!-- Image Container -->
+                <div class="md:w-1/2 flex items-center justify-center mb-6 md:mb-0">
+                    <img id="modal-image" src="" alt="Prize Image" class="w-full h-auto max-h-96 object-contain rounded-lg shadow-xl">
+                </div>
+                
+                <!-- Description Container -->
+                <div class="md:w-1/2 text-left">
+                    <p id="modal-description" class="text-gray-300 text-lg leading-relaxed mb-6">
+                        Detailed description of the prize will appear here.
+                    </p>
+                    <!-- Button updated to Gold background and Navy text -->
+                    <button onclick="hidePrizeModal();" class="inline-block py-3 px-6 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">
+                        Close & Spin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Prize Modal Structure -->
+    
+    <!-- FOOTER -->
+    <footer class="bg-black/40 py-8 mt-auto shadow-[0_-5px_15px_rgba(0,0,0,0.5)] backdrop-blur-sm border-t border-ma-gold/20">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+                <div class="text-center md:text-left">
+                    <h3 class="text-ma-gold font-bold mb-2">Mi Kamcha Yisroel</h3>
+                    <p class="text-sm text-gray-400">Supporting our community through charitable initiatives.</p>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-ma-gold font-bold mb-2">Quick Links</h3>
+                    <ul class="text-sm text-gray-400 space-y-1">
+                        <li><a href="/" class="hover:text-ma-gold transition-colors">Home</a></li>
+                        <li><a href="/terms.html" class="hover:text-ma-gold transition-colors">Terms of Service</a></li>
+                        <li><a href="/privacy.html" class="hover:text-ma-gold transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="text-center md:text-right">
+                    <h3 class="text-ma-gold font-bold mb-2">Contact</h3>
+                    <p class="text-sm text-gray-400">
+                        <a href="sms:5166526950" class="hover:text-ma-gold transition-colors">Text: 516-652-6950</a>
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-ma-gold/20 pt-4 text-center">
+                <p class="text-sm text-gray-500 mb-1">
+                    &copy; 2026 Mi Kamcha Yisroel. All Rights Reserved.
+                </p>
+                <p class="text-sm text-gray-500">
+                    Website created by 
+                    <a href="sms:9295845753" class="text-ma-gold hover:text-ma-gold/80 transition-colors">Saul Setton</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase and Stripe Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <script>
+        // --- Modal Functions ---
+        function showPrizeModal(element) {
+            const name = element.getAttribute('data-name');
+            const desc = element.getAttribute('data-desc');
+            const img = element.getAttribute('data-img');
+
+            const modal = document.getElementById('prize-modal');
+            const modalContent = document.getElementById('modal-content-container');
+            
+            document.getElementById('modal-title').textContent = name;
+            document.getElementById('modal-description').textContent = desc;
+            document.getElementById('modal-image').src = img;
+            document.getElementById('modal-image').alt = name;
+
+            // Show modal and apply transition classes
+            modal.classList.remove('hidden');
+            modal.classList.add('flex'); // Use flex to center
+            
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10); // Small delay for transition
+        }
+
+        function hidePrizeModal(event) {
+            if (event && event.currentTarget.id !== 'prize-modal' && event.type === 'click') {
+                return;
+            }
+            
+            const modal = document.getElementById('prize-modal');
+            const modalContent = document.getElementById('modal-content-container');
+            
+            // Apply transition out classes
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            modal.style.opacity = '0';
+            
+            // Hide modal after transition completes
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300); // Wait for transition duration (300ms)
+        }
+        // --- End Modal Functions ---
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- UI Elements ---
+            const initialForm = document.getElementById('initial-form');
+            const spinProceedToPaymentButton = document.getElementById('spin-proceed-to-payment');
+            const spinStripePayButton = document.getElementById('spin-stripe-pay-button');
+            const spinNameInput = document.getElementById('spin-name');
+            const spinEmailInput = document.getElementById('spin-email');
+            const spinPhoneInput = document.getElementById('spin-phone');
+            const coverFeesCheckbox = document.getElementById('cover-fees');
+            const coverFeesTooltipWrapper = document.getElementById('cover-fees-tooltip-wrapper');
+            const coverFeesTooltip = document.getElementById('cover-fees-tooltip');
+            const spinStripePaymentElement = document.getElementById('spin-stripe-payment-element');
+            const spinPaymentElementContainer = document.getElementById('spin-payment-element-container');
+            const processingFeeNote = document.getElementById('processing-fee-note');
+            const chargeSummaryText = document.getElementById('charge-summary-text');
+            const payButtonLabel = spinStripePayButton.querySelector('.button-text');
+            
+            // Flip Clock Digit IDs (reused for static display)
+            const digitHundredsId = 'digit-hundreds';
+            const digitTensId = 'digit-tens';
+            const digitOnesId = 'digit-ones';
+
+            // Common UI Elements
+            const globalLoadingOverlay = document.getElementById('globalLoadingOverlay');
+            const globalSpinnerText = document.getElementById('globalSpinnerText');
+            const customPopupOverlay = document.getElementById('customPopupOverlay');
+            const customPopup = document.getElementById('customPopup');
+            const popupTitle = document.getElementById('popupTitle');
+            const popupMessage = document.getElementById('popupMessage');
+            const popupCloseButton = document.getElementById('popupCloseButton');
+            // Removed menuToggle, mainMenu, mainMenuMobile DOM elements
+
+            // Modal elements
+            const spinModal = document.getElementById('spinModal');
+            const modalFlashingNumber = document.getElementById('modalFlashingNumber');
+            const modalResultDisplay = document.getElementById('modalResultDisplay');
+            const modalWinningTicketNumber = document.getElementById('modalWinningTicketNumber');
+
+            if (coverFeesTooltipWrapper && coverFeesTooltip) {
+                const showTooltip = () => coverFeesTooltip.classList.remove('hidden');
+                const hideTooltip = () => coverFeesTooltip.classList.add('hidden');
+                coverFeesTooltipWrapper.addEventListener('mouseenter', showTooltip);
+                coverFeesTooltipWrapper.addEventListener('mouseleave', hideTooltip);
+                coverFeesTooltipWrapper.addEventListener('click', () => coverFeesTooltip.classList.toggle('hidden'));
+            }
+            
+            // --- Global State (UPDATED: 500 tickets) ---
+            const TOTAL_SPIN_TICKETS = 500;
+            const SPIN_DURATION = 3000; // Updated to 3 seconds (3000ms)
+            const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+            let elements;
+            let spinTicketNumber = 0;
+            let flashInterval;
+            let chargeSummary = null;
+            const cleanAmount = (value = 0) => Math.round(Number(value || 0) * 100) / 100;
+
+            // --- Stripe & Firebase Initialization (UPDATED for SANDBOX) ---
+            // Stripe Test Public Key added here
+            const stripe = Stripe('pk_live_51MEdj9GYZgaCp9bFFhkdmLJJYW6uGRPm3CF2CMIJfpkGEmXXcfVQw2LFdvLxXrbiTMZzfaB3u0D6sS45Xw92x2zz00euIhE5yK'); 
+
+            // Updated Firebase Config for Mi Kamcha Yisroel
+            const firebaseConfig = {
+                apiKey: "AIzaSyApFDhSZhG46VrfgrR7l-PnZNF_b1k3xlY",
+                authDomain: "mi-keamcha-yisrael.firebaseapp.com",
+                projectId: "mi-keamcha-yisrael",
+                storageBucket: "mi-keamcha-yisrael.firebasestorage.app",
+                messagingSenderId: "918243863180",
+                appId: "1:918243863180:web:c16c95d1e67f0a8d22e9a9"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+
+            // --- Helper Functions ---
+            function showCustomPopup(title, message) {
+                popupTitle.textContent = title;
+                popupMessage.textContent = message;
+                customPopupOverlay.classList.remove('hidden');
+                setTimeout(() => { customPopup.classList.add('scale-100'); }, 10);
+            }
+
+            function hideCustomPopup() {
+                customPopup.classList.remove('scale-100');
+                setTimeout(() => { customPopupOverlay.classList.add('hidden'); }, 300);
+            }
+
+            function showGlobalLoadingOverlay(message = "Loading...", disableForm = false) {
+                globalSpinnerText.textContent = message;
+                globalLoadingOverlay.classList.remove('hidden');
+            }
+
+            function hideGlobalLoadingOverlay() {
+                globalLoadingOverlay.classList.add('hidden');
+            }
+
+            // --- NEW STATIC SCOREBOARD LOGIC ---
+
+            // Function to set the static digits
+            function updateScoreboardDisplay(newCount) {
+                // Ensure the count is always three digits (000 to 500)
+                const normalizedCount = Math.max(0, Math.min(TOTAL_SPIN_TICKETS, newCount));
+                const countString = normalizedCount.toString().padStart(3, '0');
+                const digits = countString.split('');
+
+                // Update the text content of the three digit boxes
+                document.getElementById(digitHundredsId).innerHTML = `<span class="digit-text">${digits[0]}</span>`;
+                document.getElementById(digitTensId).innerHTML = `<span class="digit-text">${digits[1]}</span>`;
+                document.getElementById(digitOnesId).innerHTML = `<span class="digit-text">${digits[2]}</span>`;
+            }
+            
+            // Function to initialize the scoreboard look and initial count
+            function initializeScoreboard() {
+                // Initialize with the maximum ticket count
+                updateScoreboardDisplay(TOTAL_SPIN_TICKETS);
+            }
+            // --- END NEW STATIC SCOREBOARD LOGIC ---
+
+            function updateChargeSummaryUI(summary) {
+                if (!chargeSummaryText) return;
+                if (!summary) {
+                    chargeSummaryText.textContent = '';
+                    if (processingFeeNote) processingFeeNote.classList.add('hidden');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                    return;
+                }
+
+                const baseAmount = summary.baseAmount ?? spinTicketNumber;
+                const feesTotal = cleanAmount((summary.mandatoryFees || 0) + (summary.processingFee || 0));
+                if (processingFeeNote) {
+                    processingFeeNote.classList.toggle('hidden', !summary.coverFees);
+                }
+                // Do not reveal total; keep the surprise for the wheel.
+                chargeSummaryText.textContent = `Ticket #${spinTicketNumber} base: $${cleanAmount(baseAmount).toFixed(2)}${summary.coverFees ? ` | processing: +2.2% + $0.30` : ''}`;
+                if (payButtonLabel) {
+                    payButtonLabel.textContent = 'Pay Now';
+                }
+            }
+
+            
+            // --- Spin to Win Logic ---
+
+            function startSpinAnimation() {
+                modalFlashingNumber.classList.remove('result-blink-red'); // Clear final state
+                modalFlashingNumber.classList.add('flashing-text'); // ADD flashing during spin
+                modalResultDisplay.classList.add('hidden');
+                spinModal.classList.remove('hidden');
+                
+                let hasShownOne = false;
+                
+                // Use setInterval to change the number rapidly, creating the spin illusion
+                flashInterval = setInterval(() => {
+                    if (!hasShownOne) {
+                        modalFlashingNumber.textContent = 1;
+                        hasShownOne = true;
+                    } else {
+                        // Rapidly cycling number between 1 and 500
+                        const randomNumber = Math.floor(Math.random() * TOTAL_SPIN_TICKETS) + 1;
+                        modalFlashingNumber.textContent = randomNumber;
+                    }
+                }, 100);
+            }
+
+            function stopSpinAnimationAndReveal(finalTicketNumber, totalPaid, feesPaid, baseAmount) {
+                clearInterval(flashInterval);
+
+                modalFlashingNumber.classList.remove('flashing-text'); // STOP flashing from the spin animation
+                modalFlashingNumber.textContent = finalTicketNumber;
+                modalWinningTicketNumber.textContent = `$${finalTicketNumber}.00`;
+                modalResultDisplay.classList.remove('hidden');
+                
+                // Start 3-second red blink
+                modalFlashingNumber.classList.add('result-blink-red');
+
+                // Prepare final redirect URL
+                const name = encodeURIComponent(spinNameInput.value.trim());
+                const totalAmount = cleanAmount(totalPaid || finalTicketNumber);
+                const feeAmount = cleanAmount(feesPaid || (totalAmount - finalTicketNumber));
+                const baseCharge = cleanAmount(baseAmount || finalTicketNumber);
+                const redirectUrl = `${window.location.origin}/successful/?name=${name}&tickets=1&ticketNumber=${finalTicketNumber}&amount=${baseCharge}&totalPaid=${totalAmount}&feesPaid=${feeAmount}`;
+
+                // Set timeout for final redirect after 3 seconds of blinking
+                setTimeout(() => {
+                    modalFlashingNumber.classList.remove('result-blink-red');
+                    window.location.href = redirectUrl;
+                }, 3000); // 3 second blink duration
+            }
+
+            // Simple client-side validation for the initial form
+            function validateInitialForm() {
+                const name = spinNameInput.value.trim();
+                const email = spinEmailInput.value.trim();
+                const phone = spinPhoneInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const phoneDigits = phone.replace(/\D/g, '');
+
+                if (!name) { showCustomPopup('Missing Field', 'Please enter your full name.'); return false; }
+                if (!email) { showCustomPopup('Missing Field', 'Please enter your email address.'); return false; }
+                if (!emailRegex.test(email)) { showCustomPopup('Invalid Email', 'Please enter a valid email address.'); return false; }
+                if (!phone) { showCustomPopup('Missing Field', 'Please enter your phone number.'); return false; }
+                if (phoneDigits.length < 7) { showCustomPopup('Invalid Phone', 'Please enter a valid phone number (at least 7 digits).'); return false; }
+
+                return true;
+            }
+
+            // --- Event Listeners ---
+            popupCloseButton.addEventListener('click', hideCustomPopup);
+            
+            // Initialize the scoreboard
+            initializeScoreboard();
+            
+            spinProceedToPaymentButton.addEventListener('click', async () => {
+                // Perform robust client-side validation
+                if (!validateInitialForm()) {
+                    return;
+                }
+                
+                showGlobalLoadingOverlay("Preparing your ticket...", true);
+                
+                try {
+                    const requestData = {
+                        name: spinNameInput.value.trim(),
+                        email: spinEmailInput.value.trim(),
+                        phone: spinPhoneInput.value.trim(),
+                        coverFees: coverFeesCheckbox && coverFeesCheckbox.checked
+                    };
+
+                    const response = await fetch(`${functionsBaseUrl}/createSpinPaymentIntentHttp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestData)
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Could not create a payment intent.');
+                    }
+
+                    spinTicketNumber = payload.ticketNumber;
+                    chargeSummary = payload.chargeSummary || null;
+
+                    // Stripe elements initialization
+                    elements = stripe.elements({ clientSecret: payload.clientSecret, fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }] });
+                    const paymentElement = elements.create('payment');
+                    paymentElement.mount(spinPaymentElementContainer);
+
+                    updateChargeSummaryUI(chargeSummary);
+
+                    // Enable dynamic toggle to recreate PI with new coverFees
+                    if (coverFeesCheckbox) {
+                        coverFeesCheckbox.disabled = false;
+                        coverFeesCheckbox.addEventListener('change', async () => {
+                            try {
+                                showGlobalLoadingOverlay('Updating totals...', true);
+                                // Unmount existing payment element
+                                const container = document.getElementById('spin-payment-element-container');
+                                while (container.firstChild) container.removeChild(container.firstChild);
+
+                                // Request a new PaymentIntent with updated coverFees
+                                const requestData = {
+                                    name: spinNameInput.value.trim(),
+                                    email: spinEmailInput.value.trim(),
+                                    phone: spinPhoneInput.value.trim(),
+                                    coverFees: coverFeesCheckbox.checked
+                                };
+
+                                const response = await fetch(`${functionsBaseUrl}/createSpinPaymentIntentHttp`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(requestData)
+                                });
+                                const payload = await response.json().catch(() => ({}));
+                                if (!response.ok) {
+                                    throw new Error(payload.message || 'Could not update payment intent.');
+                                }
+
+                                // Update state and remount elements
+                                spinTicketNumber = payload.ticketNumber;
+                                chargeSummary = payload.chargeSummary || null;
+                                elements = stripe.elements({ clientSecret: payload.clientSecret, fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }] });
+                                const paymentElement = elements.create('payment');
+                                paymentElement.mount(spinPaymentElementContainer);
+                                updateChargeSummaryUI(chargeSummary);
+                                hideGlobalLoadingOverlay();
+                            } catch (err) {
+                                console.error('Error updating PaymentIntent on fee toggle:', err);
+                                showCustomPopup('Update Error', err.message || 'Failed to update totals.');
+                                hideGlobalLoadingOverlay();
+                            }
+                        }, { once: false });
+                    }
+
+                    // Hide user info form, show payment element
+                    initialForm.classList.add('hidden');
+                    spinStripePaymentElement.classList.remove('hidden');
+                    spinStripePayButton.classList.remove('hidden');
+
+                    hideGlobalLoadingOverlay();
+
+                } catch (error) {
+                    console.error('Error setting up payment:', error);
+                    const errorMessage = error.details?.message || error.message || 'Could not set up payment. Please check your connection and try again.';
+                    showCustomPopup('Payment Setup Error', errorMessage);
+                    hideGlobalLoadingOverlay();
+                }
+            });
+
+            spinStripePayButton.addEventListener('click', async (event) => {
+                event.preventDefault();
+
+                // Check if the Stripe Payment Element has actually mounted successfully
+                if (!elements || !document.getElementById('spin-payment-element-container').children.length) {
+                    showCustomPopup('Payment Setup Error', 'Payment environment failed to load. Please refresh the page.');
+                    return;
+                }
+
+                // Show the modal and start the spin animation immediately
+                spinStripePaymentElement.classList.add('hidden');
+                initialForm.classList.add('hidden');
+                spinModal.classList.remove('hidden');
+                startSpinAnimation();
+
+                const PLACEHOLDER_RETURN_URL = `${window.location.origin}/spin-the-wheel-processing/`;
+
+                const { error, paymentIntent } = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: { 
+                        return_url: PLACEHOLDER_RETURN_URL,
+                    },
+                    redirect: 'if_required' 
+                });
+
+                if (error) {
+                    clearInterval(flashInterval); // Stop spin on immediate failure
+                    showCustomPopup('Payment Failed', error.message || 'Payment could not be processed due to an error. Please check your card details and required fields.');
+                    console.error("Stripe confirmPayment error:", error);
+                    
+                    // Reset UI: Hide modal, show payment form again
+                    spinModal.classList.add('hidden');
+                    initialForm.classList.add('hidden');
+                    spinStripePaymentElement.classList.remove('hidden');
+                    spinStripePayButton.classList.remove('hidden');
+
+                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                    const paidTotal = chargeSummary?.totalCharge || cleanAmount(paymentIntent.amount / 100);
+                    const baseForSuccess = chargeSummary?.baseAmount || spinTicketNumber;
+                    const feesPaid = cleanAmount(paidTotal - baseForSuccess);
+                    // Payment succeeded client-side
+                    setTimeout(() => {
+                        // Stop spin, reveal number, start 3s red blink, then redirect
+                        stopSpinAnimationAndReveal(spinTicketNumber, paidTotal, feesPaid, baseForSuccess);
+                    }, SPIN_DURATION); // Wait 3 seconds for the spin visualization
+
+                } else {
+                    console.log("Payment requires action or is pending. Letting Stripe handle the redirect flow.");
+                }
+            });
+
+            // --- Firebase Initialization and Real-time Listener ---
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    console.log('User signed in with UID:', user.uid);
+                    
+                    if (user.isAnonymous && !user.uid) return;
+
+                    // Listen to the 'spin_tickets' collection
+                    db.collection('spin_tickets').onSnapshot((querySnapshot) => { 
+                        let paidOrClaimedCount = 0;
+                        querySnapshot.forEach(doc => {
+                            const ticket = doc.data();
+                            // Only count paid or claimed tickets
+                            if (ticket.status === 'paid' || ticket.status === 'claimed') {
+                                paidOrClaimedCount++;
+                            }
+                        });
+
+                        const ticketsLeft = TOTAL_SPIN_TICKETS - paidOrClaimedCount;
+                        
+                        // Update the visual display using the simple scoreboard function
+                        updateScoreboardDisplay(ticketsLeft);
+
+                    }, (error) => { console.error("Error listening to tickets:", error); });
+                } else {
+                    try {
+                        // Sign in anonymously if no user is signed in
+                        await auth.signInAnonymously();
+                    } catch (error) {
+                        console.error('Anonymous sign-in failed:', error);
+                        showCustomPopup('Authentication Error', 'Could not sign you in. Please try again later.');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
