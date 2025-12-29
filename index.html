@@ -791,7 +791,7 @@
         // --- End Modal Functions ---
 
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // --- UI Elements ---
             const initialForm = document.getElementById('initial-form');
             const spinProceedToPaymentButton = document.getElementById('spin-proceed-to-payment');
@@ -838,13 +838,15 @@
             }
             
             // --- Global State (UPDATED: 500 tickets) ---
-            const TOTAL_SPIN_TICKETS = 500;
+            let TOTAL_SPIN_TICKETS = 500;
             const SPIN_DURATION = 3000; // Updated to 3 seconds (3000ms)
             const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
             let elements;
+            let paymentElement;
             let spinTicketNumber = 0;
             let flashInterval;
             let chargeSummary = null;
+            let spinBasePrice = 100;
             const cleanAmount = (value = 0) => Math.round(Number(value || 0) * 100) / 100;
 
             // --- Stripe & Firebase Initialization (UPDATED for SANDBOX) ---
@@ -886,6 +888,43 @@
                 globalLoadingOverlay.classList.add('hidden');
             }
 
+            async function loadSpinConfig() {
+                try {
+                    const response = await fetch(`${functionsBaseUrl}/spinConfigHttp`);
+                    const payload = await response.json();
+                    if (response.ok) {
+                        spinBasePrice = cleanAmount(payload.basePrice || spinBasePrice);
+                        TOTAL_SPIN_TICKETS = payload.totalTickets || TOTAL_SPIN_TICKETS;
+                    }
+                } catch (error) {
+                    console.error('Failed to load spin config. Using defaults.', error);
+                }
+            }
+
+            function getChargeSummary(coverFeesSelected) {
+                const baseAmount = cleanAmount(spinBasePrice);
+                const mandatoryFees = cleanAmount(baseAmount * 0.02);
+                const processingFee = coverFeesSelected ? cleanAmount(baseAmount * 0.022 + 0.30) : 0;
+                const totalCharge = cleanAmount(baseAmount + mandatoryFees + processingFee);
+                return { baseAmount, mandatoryFees, processingFee, totalCharge, coverFees: !!coverFeesSelected };
+            }
+
+            function mountPaymentElement(summary) {
+                if (elements && paymentElement) {
+                    paymentElement.unmount();
+                }
+
+                elements = stripe.elements({
+                    mode: 'payment',
+                    amount: Math.round(summary.totalCharge * 100),
+                    currency: 'usd',
+                    fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }],
+                });
+
+                paymentElement = elements.create('payment');
+                paymentElement.mount(spinPaymentElementContainer);
+            }
+
             // --- NEW STATIC SCOREBOARD LOGIC ---
 
             // Function to set the static digits
@@ -917,13 +956,11 @@
                     return;
                 }
 
-                const baseAmount = summary.baseAmount ?? spinTicketNumber;
-                const feesTotal = cleanAmount((summary.mandatoryFees || 0) + (summary.processingFee || 0));
+                const baseAmount = summary.baseAmount ?? spinBasePrice;
                 if (processingFeeNote) {
                     processingFeeNote.classList.toggle('hidden', !summary.coverFees);
                 }
-                // Do not reveal total; keep the surprise for the wheel.
-                chargeSummaryText.textContent = `Ticket #${spinTicketNumber} base: $${cleanAmount(baseAmount).toFixed(2)}${summary.coverFees ? ` | processing: +2.2% + $0.30` : ''}`;
+                chargeSummaryText.textContent = `Base ticket: $${cleanAmount(baseAmount).toFixed(2)}${summary.coverFees ? ` | processing: +2.2% + $0.30` : ''}`;
                 if (payButtonLabel) {
                     payButtonLabel.textContent = 'Pay Now';
                 }
@@ -998,102 +1035,38 @@
             // --- Event Listeners ---
             popupCloseButton.addEventListener('click', hideCustomPopup);
             
-            // Initialize the scoreboard
+            await loadSpinConfig();
             initializeScoreboard();
             
             spinProceedToPaymentButton.addEventListener('click', async () => {
-                // Perform robust client-side validation
                 if (!validateInitialForm()) {
                     return;
                 }
                 
-                showGlobalLoadingOverlay("Preparing your ticket...", true);
+                showGlobalLoadingOverlay("Preparing your payment...", true);
                 
                 try {
-                    const requestData = {
-                        name: spinNameInput.value.trim(),
-                        email: spinEmailInput.value.trim(),
-                        phone: spinPhoneInput.value.trim(),
-                        coverFees: coverFeesCheckbox && coverFeesCheckbox.checked
-                    };
-
-                    const response = await fetch(`${functionsBaseUrl}/createSpinPaymentIntentHttp`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestData)
-                    });
-
-                    const payload = await response.json().catch(() => ({}));
-
-                    if (!response.ok) {
-                        throw new Error(payload.message || 'Could not create a payment intent.');
-                    }
-
-                    spinTicketNumber = payload.ticketNumber;
-                    chargeSummary = payload.chargeSummary || null;
-
-                    // Stripe elements initialization
-                    elements = stripe.elements({ clientSecret: payload.clientSecret, fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }] });
-                    const paymentElement = elements.create('payment');
-                    paymentElement.mount(spinPaymentElementContainer);
-
+                    chargeSummary = getChargeSummary(coverFeesCheckbox && coverFeesCheckbox.checked);
+                    mountPaymentElement(chargeSummary);
                     updateChargeSummaryUI(chargeSummary);
 
-                    // Enable dynamic toggle to recreate PI with new coverFees
                     if (coverFeesCheckbox) {
                         coverFeesCheckbox.disabled = false;
-                        coverFeesCheckbox.addEventListener('change', async () => {
-                            try {
-                                showGlobalLoadingOverlay('Updating totals...', true);
-                                // Unmount existing payment element
-                                const container = document.getElementById('spin-payment-element-container');
-                                while (container.firstChild) container.removeChild(container.firstChild);
-
-                                // Request a new PaymentIntent with updated coverFees
-                                const requestData = {
-                                    name: spinNameInput.value.trim(),
-                                    email: spinEmailInput.value.trim(),
-                                    phone: spinPhoneInput.value.trim(),
-                                    coverFees: coverFeesCheckbox.checked
-                                };
-
-                                const response = await fetch(`${functionsBaseUrl}/createSpinPaymentIntentHttp`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(requestData)
-                                });
-                                const payload = await response.json().catch(() => ({}));
-                                if (!response.ok) {
-                                    throw new Error(payload.message || 'Could not update payment intent.');
-                                }
-
-                                // Update state and remount elements
-                                spinTicketNumber = payload.ticketNumber;
-                                chargeSummary = payload.chargeSummary || null;
-                                elements = stripe.elements({ clientSecret: payload.clientSecret, fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }] });
-                                const paymentElement = elements.create('payment');
-                                paymentElement.mount(spinPaymentElementContainer);
-                                updateChargeSummaryUI(chargeSummary);
-                                hideGlobalLoadingOverlay();
-                            } catch (err) {
-                                console.error('Error updating PaymentIntent on fee toggle:', err);
-                                showCustomPopup('Update Error', err.message || 'Failed to update totals.');
-                                hideGlobalLoadingOverlay();
-                            }
-                        }, { once: false });
+                        coverFeesCheckbox.addEventListener('change', () => {
+                            chargeSummary = getChargeSummary(coverFeesCheckbox.checked);
+                            mountPaymentElement(chargeSummary);
+                            updateChargeSummaryUI(chargeSummary);
+                        });
                     }
 
-                    // Hide user info form, show payment element
                     initialForm.classList.add('hidden');
                     spinStripePaymentElement.classList.remove('hidden');
                     spinStripePayButton.classList.remove('hidden');
-
-                    hideGlobalLoadingOverlay();
-
                 } catch (error) {
                     console.error('Error setting up payment:', error);
                     const errorMessage = error.details?.message || error.message || 'Could not set up payment. Please check your connection and try again.';
                     showCustomPopup('Payment Setup Error', errorMessage);
+                } finally {
                     hideGlobalLoadingOverlay();
                 }
             });
@@ -1101,51 +1074,101 @@
             spinStripePayButton.addEventListener('click', async (event) => {
                 event.preventDefault();
 
-                // Check if the Stripe Payment Element has actually mounted successfully
                 if (!elements || !document.getElementById('spin-payment-element-container').children.length) {
                     showCustomPopup('Payment Setup Error', 'Payment environment failed to load. Please refresh the page.');
                     return;
                 }
 
-                // Show the modal and start the spin animation immediately
-                spinStripePaymentElement.classList.add('hidden');
-                initialForm.classList.add('hidden');
-                spinModal.classList.remove('hidden');
-                startSpinAnimation();
+                try {
+                    showGlobalLoadingOverlay('Processing payment...');
+                    const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
+                        elements,
+                        params: {
+                            billing_details: {
+                                name: spinNameInput.value.trim(),
+                                email: spinEmailInput.value.trim(),
+                                phone: spinPhoneInput.value.trim(),
+                            }
+                        }
+                    });
 
-                const PLACEHOLDER_RETURN_URL = `${window.location.origin}/spin-the-wheel-processing/`;
+                    if (pmError) {
+                        hideGlobalLoadingOverlay();
+                        showCustomPopup('Payment Failed', pmError.message || 'Please check your card details and try again.');
+                        return;
+                    }
 
-                const { error, paymentIntent } = await stripe.confirmPayment({
-                    elements,
-                    confirmParams: { 
-                        return_url: PLACEHOLDER_RETURN_URL,
-                    },
-                    redirect: 'if_required' 
-                });
+                    const chargeResponse = await fetch(`${functionsBaseUrl}/spinChargeHttp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: spinNameInput.value.trim(),
+                            email: spinEmailInput.value.trim(),
+                            phone: spinPhoneInput.value.trim(),
+                            coverFees: coverFeesCheckbox && coverFeesCheckbox.checked,
+                            paymentMethodId: paymentMethod.id,
+                        })
+                    });
 
-                if (error) {
-                    clearInterval(flashInterval); // Stop spin on immediate failure
-                    showCustomPopup('Payment Failed', error.message || 'Payment could not be processed due to an error. Please check your card details and required fields.');
-                    console.error("Stripe confirmPayment error:", error);
-                    
-                    // Reset UI: Hide modal, show payment form again
-                    spinModal.classList.add('hidden');
-                    initialForm.classList.add('hidden');
-                    spinStripePaymentElement.classList.remove('hidden');
-                    spinStripePayButton.classList.remove('hidden');
+                    const chargePayload = await chargeResponse.json().catch(() => ({}));
 
-                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-                    const paidTotal = chargeSummary?.totalCharge || cleanAmount(paymentIntent.amount / 100);
-                    const baseForSuccess = chargeSummary?.baseAmount || spinTicketNumber;
-                    const feesPaid = cleanAmount(paidTotal - baseForSuccess);
-                    // Payment succeeded client-side
-                    setTimeout(() => {
-                        // Stop spin, reveal number, start 3s red blink, then redirect
-                        stopSpinAnimationAndReveal(spinTicketNumber, paidTotal, feesPaid, baseForSuccess);
-                    }, SPIN_DURATION); // Wait 3 seconds for the spin visualization
+                    if (!chargeResponse.ok) {
+                        hideGlobalLoadingOverlay();
+                        const message = chargePayload.message || 'Payment could not be processed. Please try again.';
+                        showCustomPopup('Payment Error', message);
+                        return;
+                    }
 
-                } else {
-                    console.log("Payment requires action or is pending. Letting Stripe handle the redirect flow.");
+                    const handleSuccess = async (payload) => {
+                        spinTicketNumber = payload.ticketNumber;
+                        chargeSummary = payload.chargeSummary || chargeSummary;
+                        hideGlobalLoadingOverlay();
+
+                        spinStripePaymentElement.classList.add('hidden');
+                        initialForm.classList.add('hidden');
+                        spinModal.classList.remove('hidden');
+                        startSpinAnimation();
+
+                        setTimeout(() => {
+                            const paidTotal = chargeSummary?.totalCharge || 0;
+                            const baseForSuccess = chargeSummary?.baseAmount || spinBasePrice;
+                            const feesPaid = cleanAmount(paidTotal - baseForSuccess);
+                            stopSpinAnimationAndReveal(spinTicketNumber, paidTotal, feesPaid, baseForSuccess);
+                        }, SPIN_DURATION);
+                    };
+
+                    if (chargePayload.status === 'requires_action') {
+                        const { clientSecret, paymentIntentId } = chargePayload;
+                        hideGlobalLoadingOverlay();
+                        const actionResult = await stripe.handleNextAction({ clientSecret });
+                        if (actionResult.error) {
+                            showCustomPopup('Payment Authentication Failed', actionResult.error.message || 'Authentication failed. Please try again.');
+                            return;
+                        }
+
+                        showGlobalLoadingOverlay('Finalizing your ticket...');
+                        const finalizeResponse = await fetch(`${functionsBaseUrl}/spinFinalizePaymentHttp`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ paymentIntentId })
+                        });
+                        const finalizePayload = await finalizeResponse.json().catch(() => ({}));
+
+                        if (!finalizeResponse.ok) {
+                            hideGlobalLoadingOverlay();
+                            showCustomPopup('Finalization Error', finalizePayload.message || 'Could not finalize your ticket.');
+                            return;
+                        }
+
+                        await handleSuccess(finalizePayload);
+                        return;
+                    }
+
+                    await handleSuccess(chargePayload);
+                } catch (error) {
+                    console.error('Unexpected payment error:', error);
+                    hideGlobalLoadingOverlay();
+                    showCustomPopup('Payment Error', error.message || 'Payment could not be completed.');
                 }
             });
 
@@ -1162,7 +1185,7 @@
                         querySnapshot.forEach(doc => {
                             const ticket = doc.data();
                             // Only count paid or claimed tickets
-                            if (ticket.status === 'paid' || ticket.status === 'claimed') {
+                            if (ticket.status === 'paid' || ticket.status === 'claimed' || ticket.status === 'reserved') {
                                 paidOrClaimedCount++;
                             }
                         });
