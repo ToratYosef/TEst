@@ -938,6 +938,7 @@
                     mode: 'payment',
                     amount: 50000, // Display the maximum possible ($500) for randomized charges
                     currency: 'usd',
+                    paymentMethodCreation: 'manual',
                     fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }],
                 });
 
@@ -1086,6 +1087,15 @@
                     if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
+                    const { error: submitError } = await elements.submit();
+                    if (submitError) {
+                        hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        showCustomPopup('Payment Details Needed', submitError.message || 'Please confirm your payment details before continuing.');
+                        return;
+                    }
                     const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
                         elements,
                         params: {

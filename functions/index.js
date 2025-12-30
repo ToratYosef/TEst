@@ -559,6 +559,63 @@ async function finalizeSpinPurchase(paymentIntent, source = 'direct') {
     return { ticketNumber, chargeSummary };
 }
 
+async function releaseReservedSpinTicket(ticketNumber, paymentIntentId) {
+    if (!ticketNumber) return;
+    const db = admin.firestore();
+    const ticketRef = db.collection('spin_tickets').doc(ticketNumber.toString());
+    try {
+        await db.runTransaction(async (transaction) => {
+            const snap = await transaction.get(ticketRef);
+            if (!snap.exists) return;
+            const data = snap.data() || {};
+            if (data.status === 'reserved' && (!data.paymentIntentId || data.paymentIntentId === paymentIntentId)) {
+                transaction.delete(ticketRef);
+            }
+        });
+    } catch (cleanupError) {
+        console.error(`Failed to release reserved spin ticket ${ticketNumber}:`, cleanupError);
+    }
+}
+
+async function promoteReservedSpinTicketToPaid(paymentIntent) {
+    const ticketFromMetadata = paymentIntent.metadata?.ticketNumber || paymentIntent.metadata?.ticket_number;
+    if (!ticketFromMetadata) return { updated: false };
+
+    const db = admin.firestore();
+    const ticketRef = db.collection('spin_tickets').doc(ticketFromMetadata.toString());
+    const chargeSummary = calculateSpinChargeTotals(cleanAmount(ticketFromMetadata));
+    chargeSummary.totalCharge = cleanAmount(paymentIntent.amount / 100);
+
+    try {
+        const result = await db.runTransaction(async (transaction) => {
+            const snap = await transaction.get(ticketRef);
+            if (!snap.exists) return { updated: false };
+            const data = snap.data() || {};
+            if (data.status !== 'reserved' || data.paymentIntentId !== paymentIntent.id) {
+                return { updated: false };
+            }
+
+            transaction.set(ticketRef, {
+                status: 'paid',
+                paymentIntentId: paymentIntent.id,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                amountPaid: chargeSummary.totalCharge,
+                baseAmount: chargeSummary.baseAmount,
+                totalFeesPaid: cleanAmount(chargeSummary.totalCharge - chargeSummary.baseAmount),
+                processingFeePaid: chargeSummary.processingFee,
+                mandatoryFeesPaid: chargeSummary.mandatoryFees,
+                sourceApp: data.sourceApp || paymentIntent.metadata?.sourceApp || 'Mi Kamcha Yisroel Spin (Webhook Fallback)',
+            }, { merge: true });
+
+            return { updated: true, ticketNumber: ticketFromMetadata };
+        });
+        return result || { updated: false };
+    } catch (error) {
+        console.error(`Failed to promote reserved ticket ${ticketFromMetadata} to paid:`, error);
+        return { updated: false, error };
+    }
+}
+
 async function verifyAdminHttpRequest(req) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -1063,13 +1120,17 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
 
         chargeSummary = calculateSpinChargeTotals(reservedTicketNumber);
 
+        const requestOrigin = req.get('origin') || 'https://testingamoe.web.app';
+        const returnUrl = `${requestOrigin.replace(/\/$/, '')}/successful/`;
+
         const paymentIntent = await stripeClient.paymentIntents.create({
             amount: Math.round(chargeSummary.totalCharge * 100),
             currency: 'usd',
             payment_method: paymentMethodId,
-            confirmation_method: 'automatic',
+            description: `Mi Keamcha Yisrael Spin - Ticket ${reservedTicketNumber}`,
             confirm: true,
             automatic_payment_methods: { enabled: true },
+            return_url: returnUrl,
             receipt_email: email,
             metadata: {
                 name,
@@ -1092,6 +1153,14 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
                 licenseVersion: raffleLicenseVersion,
             },
         });
+
+        try {
+            await admin.firestore().collection('spin_tickets').doc(reservedTicketNumber.toString()).set({
+                paymentIntentId: paymentIntent.id,
+            }, { merge: true });
+        } catch (ticketUpdateError) {
+            console.error('Failed to tag reserved ticket with PaymentIntent ID:', ticketUpdateError);
+        }
 
         const ticketRef = admin.firestore().collection('spin_tickets').doc(reservedTicketNumber.toString());
         await ticketRef.set({
@@ -1481,6 +1550,11 @@ exports.stripeWebhook = functions.runWith({ runtime: 'nodejs20' }).https.onReque
                 console.error('Webhook ticket assignment failed:', assignmentError);
                 // Avoid failing webhook due to sold-out race; report but acknowledge.
             }
+            try {
+                await promoteReservedSpinTicketToPaid(paymentIntent);
+            } catch (promoteError) {
+                console.error('Failed to promote reserved spin ticket after webhook success:', promoteError);
+            }
         }
         
         // --- Donation Processing ---
@@ -1513,6 +1587,21 @@ exports.stripeWebhook = functions.runWith({ runtime: 'nodejs20' }).https.onReque
         console.error('Error processing payment_intent.succeeded webhook:', error);
         res.status(500).send('Internal Server Error during webhook processing.');
       }
+    } else if (event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled') {
+      const paymentIntent = event.data.object;
+      const { entryType, ticketNumber, ticket_number } = paymentIntent.metadata || {};
+      if (entryType === 'spin') {
+        const ticketToRelease = ticketNumber || ticket_number;
+        await releaseReservedSpinTicket(ticketToRelease, paymentIntent.id);
+        const db = admin.firestore();
+        await db.collection('spin_payment_intents').doc(paymentIntent.id).set({
+            paymentIntentId: paymentIntent.id,
+            ticketNumber: ticketToRelease ? Number(ticketToRelease) : undefined,
+            status: 'failed',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+      res.status(200).send('Webhook processed (failure handled).');
     } else {
       res.status(200).send('Webhook event ignored (uninteresting type).');
     }
