@@ -1187,6 +1187,7 @@ exports.spinFinalizePaymentHttp = functions.runWith({ runtime: 'nodejs20' }).htt
     try {
         const stripeClient = getStripeClient();
         const { paymentIntentId } = req.body || {};
+        const spinPaymentIntentRef = admin.firestore().collection('spin_payment_intents').doc(paymentIntentId);
 
         if (!paymentIntentId) {
             return res.status(400).json({ message: 'Missing paymentIntentId.' });
@@ -1195,6 +1196,26 @@ exports.spinFinalizePaymentHttp = functions.runWith({ runtime: 'nodejs20' }).htt
         const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
         if (paymentIntent.status !== 'succeeded') {
             return res.status(409).json({ message: 'Payment is not completed.' });
+        }
+
+        const metadata = paymentIntent.metadata || {};
+        const entryType = metadata.entryType || metadata.entry_type;
+        const ticketNumber = Number(metadata.ticketNumber || metadata.ticket_number);
+        const metadataTotalCharge = metadata.totalCharge ? Number(metadata.totalCharge) : null;
+        const paymentAmount = cleanAmount(((paymentIntent.amount_received ?? paymentIntent.amount) || 0) / 100);
+
+        if (entryType !== 'spin' || !ticketNumber) {
+            return res.status(403).json({ message: 'Payment is not eligible for spin finalization.' });
+        }
+
+        if (metadataTotalCharge && Math.abs(paymentAmount - metadataTotalCharge) > 0.01) {
+            return res.status(403).json({ message: 'Payment amount does not match spin charge.' });
+        }
+
+        const spinIntentSnapshot = await spinPaymentIntentRef.get();
+        const storedTicketNumber = spinIntentSnapshot.exists ? spinIntentSnapshot.data()?.ticketNumber : null;
+        if (!spinIntentSnapshot.exists || storedTicketNumber !== ticketNumber) {
+            return res.status(403).json({ message: 'Payment intent not recognized for spin purchase.' });
         }
 
         const result = await finalizeSpinPurchase(paymentIntent, 'finalize-endpoint');
