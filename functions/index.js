@@ -1067,7 +1067,6 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
             amount: Math.round(chargeSummary.totalCharge * 100),
             currency: 'usd',
             payment_method: paymentMethodId,
-            confirmation_method: 'automatic',
             confirm: true,
             automatic_payment_methods: { enabled: true },
             receipt_email: email,
