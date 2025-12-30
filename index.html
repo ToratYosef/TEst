@@ -1190,7 +1190,20 @@
                         return;
                     }
 
-                    await handleSuccess(chargePayload);
+                    if (chargePayload.status === 'succeeded') {
+                        await handleSuccess(chargePayload);
+                        return;
+                    }
+
+                    hideGlobalLoadingOverlay();
+                    spinStripePayButton.disabled = false;
+                    if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+
+                    const pendingMessage = chargePayload.status
+                        ? `Your payment is ${chargePayload.status.replace(/_/g, ' ')}. We'll email you once your ticket is confirmed.`
+                        : 'Your payment is still processing. Please check your email for confirmation.';
+                    showCustomPopup('Payment Processing', pendingMessage);
                 } catch (error) {
                     console.error('Unexpected payment error:', error);
                     hideGlobalLoadingOverlay();
