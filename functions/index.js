@@ -201,9 +201,9 @@ function getEmailTemplate(title, content) {
             <p><strong>Mi Kamcha Yisroel</strong><br>
             Supporting our community through charitable initiatives</p>
             <p style="margin-top: 15px;">
-                <a href="https://mi-keamcha-yisrael.web.app">Home</a> | 
-                <a href="https://mi-keamcha-yisrael.web.app/terms.html">Terms</a> | 
-                <a href="https://mi-keamcha-yisrael.web.app/privacy.html">Privacy</a>
+                <a href="https://testingamoe.web.app">Home</a> | 
+                <a href="https://testingamoe.web.app/terms.html">Terms</a> | 
+                <a href="https://testingamoe.web.app/privacy.html">Privacy</a>
             </p>
             <p style="margin-top: 10px; font-size: 11px;">
                 &copy; 2026 Mi Kamcha Yisroel. All Rights Reserved.<br>
@@ -267,7 +267,7 @@ async function sendReceiptEmail(recipientEmail, recipientName, ticketNumber, amo
         </p>
 
         <div style="text-align: center; margin-top: 30px;">
-            <a href="https://mi-keamcha-yisrael.web.app" class="button">View Raffle Details</a>
+            <a href="https://testingamoe.web.app" class="button">View Raffle Details</a>
         </div>
 
         <p style="margin-top: 30px; text-align: center; color: #9CA3AF;">
@@ -970,7 +970,7 @@ exports.deleteExpiredReservedTicketsHttp = functions.runWith({ runtime: 'nodejs2
 // --- PAYMENT INTENT FUNCTIONS ---
 
 const ALLOWED_PAYMENT_ORIGINS = [
-    'https://mi-keamcha-yisrael.web.app',
+    'https://testingamoe.web.app',
     'http://localhost:5000'
 ];
 
