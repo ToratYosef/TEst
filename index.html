@@ -17,28 +17,10 @@
     <!-- Favicon using the updated local logo -->
     <link rel="icon" type="image/png" href="/assets/logo.png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/tailwind.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-       <!-- Custom Tailwind Configuration for Mi Kamcha Yisroel Colors -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        // Logo Colors
-                        'ma-navy': '#0A0E27',
-                        'ma-gold': '#C9A961',
-                        // Darker shade for gradient start
-                        'ma-dark': '#050810', 
-                        // Complementary dark for inner panels/cards
-                        'ma-slate': '#0F1527', 
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
         html {
@@ -863,7 +845,7 @@
             // --- Global State (UPDATED: 500 tickets) ---
             let TOTAL_SPIN_TICKETS = 500;
             const SPIN_DURATION = 3000; // Updated to 3 seconds (3000ms)
-            const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+            let functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
             let elements;
             let paymentElement;
             let spinTicketNumber = 0;
@@ -875,8 +857,7 @@
             // Stripe Test Public Key added here
             const stripe = Stripe('pk_live_51MEdj9GYZgaCp9bFFhkdmLJJYW6uGRPm3CF2CMIJfpkGEmXXcfVQw2LFdvLxXrbiTMZzfaB3u0D6sS45Xw92x2zz00euIhE5yK'); 
 
-            // Updated Firebase Config for Mi Kamcha Yisroel
-            const firebaseConfig = {
+            const defaultFirebaseConfig = {
                 apiKey: "AIzaSyApFDhSZhG46VrfgrR7l-PnZNF_b1k3xlY",
                 authDomain: "mi-keamcha-yisrael.firebaseapp.com",
                 projectId: "mi-keamcha-yisrael",
@@ -884,7 +865,30 @@
                 messagingSenderId: "918243863180",
                 appId: "1:918243863180:web:c16c95d1e67f0a8d22e9a9"
             };
-            firebase.initializeApp(firebaseConfig);
+
+            async function initializeFirebase() {
+                try {
+                    const response = await fetch('/__/firebase/init.json');
+                    if (response.ok) {
+                        const hostingConfig = await response.json();
+                        firebase.initializeApp(hostingConfig);
+                        if (hostingConfig?.projectId) {
+                            functionsBaseUrl = `https://us-central1-${hostingConfig.projectId}.cloudfunctions.net`;
+                        }
+                        return hostingConfig;
+                    }
+                } catch (configError) {
+                    console.warn('Falling back to static Firebase config:', configError);
+                }
+
+                firebase.initializeApp(defaultFirebaseConfig);
+                if (defaultFirebaseConfig?.projectId) {
+                    functionsBaseUrl = `https://us-central1-${defaultFirebaseConfig.projectId}.cloudfunctions.net`;
+                }
+                return defaultFirebaseConfig;
+            }
+
+            await initializeFirebase();
             const db = firebase.firestore();
             const auth = firebase.auth();
 
@@ -1086,26 +1090,15 @@
                     if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
-                    const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
-                        elements,
-                        params: {
-                            billing_details: {
-                                name: spinNameInput.value.trim(),
-                                email: spinEmailInput.value.trim(),
-                                phone: spinPhoneInput.value.trim(),
-                            }
-                        }
-                    });
-
-                    if (pmError) {
+                    const { error: submitError } = await elements.submit();
+                    if (submitError) {
                         hideGlobalLoadingOverlay();
                         spinStripePayButton.disabled = false;
                         if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
                         if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
-                        showCustomPopup('Payment Failed', pmError.message || 'Please check your card details and try again.');
+                        showCustomPopup('Payment Details Needed', submitError.message || 'Please complete your payment details.');
                         return;
                     }
-
                     const chargeResponse = await fetch(`${functionsBaseUrl}/spinChargeHttp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1113,7 +1106,6 @@
                             name: spinNameInput.value.trim(),
                             email: spinEmailInput.value.trim(),
                             phone: spinPhoneInput.value.trim(),
-                            paymentMethodId: paymentMethod.id,
                             consents: {
                                 randomizedCharge: consentRandomCharge?.checked,
                                 rulesNoRefund: consentRulesNoRefund?.checked,
@@ -1157,40 +1149,66 @@
                         }, SPIN_DURATION);
                     };
 
-                    if (chargePayload.status === 'requires_action') {
-                        const { clientSecret, paymentIntentId } = chargePayload;
+                    const { clientSecret, paymentIntentId } = chargePayload;
+                    if (chargePayload.status !== 'requires_confirmation' || !clientSecret || !paymentIntentId) {
                         hideGlobalLoadingOverlay();
-                        const actionResult = await stripe.handleNextAction({ clientSecret });
-                        if (actionResult.error) {
-                            showCustomPopup('Payment Authentication Failed', actionResult.error.message || 'Authentication failed. Please try again.');
-                            spinStripePayButton.disabled = false;
-                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
-                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
-                            return;
-                        }
-
-                        showGlobalLoadingOverlay('Finalizing your ticket...');
-                        const finalizeResponse = await fetch(`${functionsBaseUrl}/spinFinalizePaymentHttp`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paymentIntentId })
-                        });
-                        const finalizePayload = await finalizeResponse.json().catch(() => ({}));
-
-                        if (!finalizeResponse.ok) {
-                            hideGlobalLoadingOverlay();
-                            spinStripePayButton.disabled = false;
-                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
-                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
-                            showCustomPopup('Finalization Error', finalizePayload.message || 'Could not finalize your ticket.');
-                            return;
-                        }
-
-                        await handleSuccess(finalizePayload);
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        const fallbackMessage = chargePayload.message || 'Unexpected payment state. Please try again.';
+                        showCustomPopup('Payment Error', fallbackMessage);
                         return;
                     }
 
-                    await handleSuccess(chargePayload);
+                    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+                        elements,
+                        clientSecret,
+                        confirmParams: {
+                            return_url: window.location.origin,
+                        },
+                        redirect: 'if_required',
+                    });
+
+                    if (confirmError) {
+                        hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        showCustomPopup('Payment Failed', confirmError.message || 'Please check your payment details and try again.');
+                        return;
+                    }
+
+                    const confirmedIntent = paymentIntent;
+                    if (!confirmedIntent || confirmedIntent.status !== 'succeeded') {
+                        hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        const pendingMessage = confirmedIntent?.status
+                            ? `Your payment is ${confirmedIntent.status.replace(/_/g, ' ')}. We'll email you once your ticket is confirmed.`
+                            : 'Your payment is still processing. Please check your email for confirmation.';
+                        showCustomPopup('Payment Processing', pendingMessage);
+                        return;
+                    }
+
+                    showGlobalLoadingOverlay('Finalizing your ticket...');
+                    const finalizeResponse = await fetch(`${functionsBaseUrl}/spinFinalizePaymentHttp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentIntentId })
+                    });
+                    const finalizePayload = await finalizeResponse.json().catch(() => ({}));
+
+                    if (!finalizeResponse.ok) {
+                        hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        showCustomPopup('Finalization Error', finalizePayload.message || 'Could not finalize your ticket.');
+                        return;
+                    }
+
+                    await handleSuccess(finalizePayload);
                 } catch (error) {
                     console.error('Unexpected payment error:', error);
                     hideGlobalLoadingOverlay();
