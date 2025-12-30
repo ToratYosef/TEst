@@ -465,7 +465,7 @@ async function finalizeSpinPurchase(paymentIntent, source = 'direct') {
         sourceApp: metadata.sourceApp || `Mi Kamcha Yisroel Spin (${source})`,
     };
 
-    const baseAmount = ticketNumberFromMetadata ? cleanAmount(ticketNumberFromMetadata) : (metadata.baseAmount ? cleanAmount(metadata.baseAmount) : getSpinBaseAmount());
+    const baseAmount = metadata.baseAmount ? cleanAmount(metadata.baseAmount) : getSpinBaseAmount();
     const chargeSummary = calculateSpinChargeTotals(baseAmount);
     chargeSummary.totalCharge = cleanAmount(paymentIntent.amount / 100);
     const paymentIntentRef = db.collection('spin_payment_intents').doc(paymentIntent.id);
@@ -473,21 +473,25 @@ async function finalizeSpinPurchase(paymentIntent, source = 'direct') {
     let isNewAssignment = false;
     const { ticketNumber } = await db.runTransaction(async (transaction) => {
         const existing = await transaction.get(paymentIntentRef);
-        if (existing.exists && existing.data().ticketNumber) {
-            return { ticketNumber: existing.data().ticketNumber };
-        }
 
-        const soldCount = await countPaidOrClaimedTickets(transaction);
-        if (soldCount >= TOTAL_TICKETS) {
-            throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
-        }
-
-        const chosenTicket = ticketNumberFromMetadata
-            ? Number(ticketNumberFromMetadata)
-            : await assignRandomAvailableTicket(transaction, purchaser, paymentIntent.id, chargeSummary);
+        let chosenTicket = existing.exists && existing.data().ticketNumber
+            ? Number(existing.data().ticketNumber)
+            : null;
 
         if (!chosenTicket) {
-            throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+            const soldCount = await countPaidOrClaimedTickets(transaction);
+            if (soldCount >= TOTAL_TICKETS) {
+                throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+            }
+
+            chosenTicket = ticketNumberFromMetadata
+                ? Number(ticketNumberFromMetadata)
+                : await assignRandomAvailableTicket(transaction, purchaser, paymentIntent.id, chargeSummary);
+
+            if (!chosenTicket) {
+                throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+            }
+            isNewAssignment = true;
         }
 
         const ticketRef = db.collection('spin_tickets').doc(chosenTicket.toString());
@@ -525,7 +529,6 @@ async function finalizeSpinPurchase(paymentIntent, source = 'direct') {
             licenseVersion: raffleLicenseVersion,
         }, { merge: true });
 
-        isNewAssignment = true;
         return { ticketNumber: chosenTicket };
     });
 
@@ -1243,6 +1246,45 @@ exports.spinFinalizePaymentHttp = functions.runWith({ runtime: 'nodejs20' }).htt
         const status = (error instanceof functions.https.HttpsError && error.code === 'resource-exhausted') ? 409 : 500;
         return res.status(status).json({ message });
     }
+});
+
+/**
+ * Lightweight status polling endpoint to check spin PaymentIntent assignment.
+ * Returns assigned ticket details only after webhook/finalization has marked it.
+ */
+exports.spinPaymentStatusHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        if (req.method !== 'GET' && req.method !== 'POST') {
+            return res.status(405).json({ message: 'Method not allowed' });
+        }
+
+        const paymentIntentId = req.method === 'GET'
+            ? (req.query.paymentIntentId || req.query.pi || '').toString()
+            : (req.body && req.body.paymentIntentId);
+
+        if (!paymentIntentId) {
+            return res.status(400).json({ message: 'Missing paymentIntentId.' });
+        }
+
+        try {
+            const doc = await admin.firestore().collection('spin_payment_intents').doc(paymentIntentId).get();
+            if (!doc.exists) {
+                return res.status(404).json({ status: 'not_found', message: 'No record for that payment.' });
+            }
+
+            const data = doc.data() || {};
+            return res.status(200).json({
+                status: data.status || 'unknown',
+                ticketNumber: data.ticketNumber,
+                chargeSummary: data.chargeSummary,
+                message: data.message,
+                updatedAt: data.updatedAt || data.assignedAt || data.createdAt,
+            });
+        } catch (error) {
+            console.error('Failed to fetch payment status:', error);
+            return res.status(500).json({ message: 'Unable to check payment status.' });
+        }
+    });
 });
 
 async function createSpinPaymentIntentCore(data) {

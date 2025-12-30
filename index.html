@@ -916,6 +916,35 @@
                 }
             }
 
+            async function pollPaymentStatus(paymentIntentId, maxAttempts = 15, delayMs = 1200) {
+                if (!paymentIntentId) {
+                    throw new Error('Missing payment reference; cannot confirm payment.');
+                }
+
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    try {
+                        const statusResponse = await fetch(`${functionsBaseUrl}/spinPaymentStatusHttp?paymentIntentId=${encodeURIComponent(paymentIntentId)}`);
+                        const statusPayload = await statusResponse.json().catch(() => ({}));
+
+                        if (statusResponse.ok) {
+                            const status = (statusPayload.status || '').toLowerCase();
+                            if (status === 'assigned' && statusPayload.ticketNumber) {
+                                return statusPayload;
+                            }
+                            if (status === 'failed') {
+                                throw new Error(statusPayload.message || 'Payment failed to complete.');
+                            }
+                        }
+                    } catch (pollError) {
+                        if (attempt === maxAttempts - 1) throw pollError;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                }
+
+                throw new Error('Timed out waiting for payment confirmation.');
+            }
+
             function mountPaymentElement() {
                 if (elements && paymentElement) {
                     paymentElement.unmount();
@@ -1132,13 +1161,27 @@
                     }
 
                     const handleSuccess = async (payload) => {
-                        spinTicketNumber = payload.ticketNumber;
-                        chargeSummary = payload.chargeSummary || chargeSummary || {
-                            baseAmount: cleanAmount(payload.ticketNumber || 0),
-                            totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
-                            mandatoryFees: 0,
-                            processingFee: 0,
-                        };
+                        const paymentIntentId = payload.paymentIntentId;
+                        showGlobalLoadingOverlay('Finalizing your ticket...');
+
+                        try {
+                            const statusPayload = await pollPaymentStatus(paymentIntentId);
+                            spinTicketNumber = statusPayload.ticketNumber || payload.ticketNumber;
+                            chargeSummary = statusPayload.chargeSummary || payload.chargeSummary || chargeSummary || {
+                                baseAmount: cleanAmount(payload.ticketNumber || 0),
+                                totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
+                                mandatoryFees: 0,
+                                processingFee: 0,
+                            };
+                        } catch (statusError) {
+                            hideGlobalLoadingOverlay();
+                            spinStripePayButton.disabled = false;
+                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                            showCustomPopup('Payment Pending', statusError.message || 'Payment is still being confirmed. Please try again.');
+                            return;
+                        }
+
                         hideGlobalLoadingOverlay();
 
                         spinStripePaymentElement.classList.add('hidden');
