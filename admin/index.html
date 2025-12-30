@@ -115,9 +115,11 @@
         <!-- Login Form State -->
         <div id="login-state" class="hidden w-full max-w-sm dashboard-panel rounded-xl p-8 space-y-4">
             <h1 class="bebas-neue text-4xl text-ma-gold text-center mb-6">Admin Sign-In</h1>
-            <input type="email" id="admin-email" placeholder="Email" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
-            <input type="password" id="admin-password" placeholder="Password" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
-            <button id="signin-button" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Sign In</button>
+            <form id="login-form" class="space-y-3">
+                <input type="email" id="admin-email" placeholder="Email" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+                <input type="password" id="admin-password" placeholder="Password" class="w-full p-3 rounded-lg bg-ma-slate/70 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+                <button id="signin-button" type="submit" class="w-full py-3 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Sign In</button>
+            </form>
             <p id="login-error" class="text-sm text-red-400 text-center hidden"></p>
         </div>
 
@@ -345,7 +347,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const functions = firebase.functions(); // Initialize functions
-        const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+        const functionsBaseUrl = 'https://us-central1-testingamoe.cloudfunctions.net';
 
         // --- DOM Elements ---
         const loadingState = document.getElementById('loading-state');
@@ -354,6 +356,7 @@
         const adminEmailInput = document.getElementById('admin-email');
         const adminPasswordInput = document.getElementById('admin-password');
         const signInButton = document.getElementById('signin-button');
+        const loginForm = document.getElementById('login-form');
         const signOutButton = document.getElementById('signout-button');
         const loginError = document.getElementById('login-error');
         const ticketsTableBody = document.getElementById('tickets-table-body');
@@ -595,8 +598,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/markTicketPaidHttp`, {
                     method: 'POST',
                     headers: {
@@ -737,10 +738,16 @@
                     body: JSON.stringify({ timeoutMinutes: 7 })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.warn('Unable to parse cleanup response as JSON:', parseError);
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.message || 'Cleanup failed');
+                    const errorMessage = data.message || data.error || `Cleanup failed with status ${response.status}`;
+                    throw new Error(errorMessage);
                 }
 
                 alert(`Cleanup Complete: ${data.message}`);
@@ -828,8 +835,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/sendDrawingSoonEmailHttp`, {
                     method: 'POST',
                     headers: {
@@ -870,8 +875,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/sendTicketsRunningOutEmailHttp`, {
                     method: 'POST',
                     headers: {
@@ -1111,7 +1114,8 @@
 
 
         // --- Authentication Logic ---
-        signInButton.addEventListener('click', async () => {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
             const email = adminEmailInput.value.trim();
             const password = adminPasswordInput.value.trim();
             loginError.classList.add('hidden');
