@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const express = require('express');
 const bodyParser = require('body-parser');
 require('dotenv').config();
+const { randomTicketNumber } = require('./rng');
 
 // IMPORTANT: Initialize the Firebase Admin SDK
 admin.initializeApp();
@@ -16,6 +17,10 @@ admin.initializeApp();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || (functions.config().stripe && functions.config().stripe.secret_key);
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const stripeEmailWebhookSecret = process.env.STRIPE_EMAIL_WEBHOOK_SECRET;
+const configuredSpinBaseAmount = process.env.SPIN_TICKET_PRICE || (functions.config().raffle && functions.config().raffle.spin_price);
+const configuredSpinTicketTotal = process.env.SPIN_TICKET_TOTAL || (functions.config().raffle && functions.config().raffle.spin_total) || 500;
+const raffleLicenseNumber = process.env.RAFFLE_LICENSE_NUMBER || (functions.config().raffle && functions.config().raffle.license_number) || 'STATE-RAFFLE-LIC-0000';
+const raffleLicenseVersion = process.env.RAFFLE_LICENSE_VERSION || (functions.config().raffle && functions.config().raffle.license_version) || 'v1';
 
 let stripe;
 
@@ -313,6 +318,122 @@ function cleanAmount(value) {
     return Math.round(num * 100) / 100;
 }
 
+function getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (Array.isArray(forwarded)) {
+        return forwarded[0];
+    }
+    if (typeof forwarded === 'string') {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.connection?.remoteAddress || 'unknown';
+}
+
+async function logAuditEntry({ userId, amountCharged, ticketNumber, ipAddress, paymentIntentId }) {
+    const db = admin.firestore();
+    const entry = {
+        user_id: userId || 'anonymous',
+        amount_charged: cleanAmount(amountCharged || 0),
+        ticket_assigned: ticketNumber ? Number(ticketNumber) : null,
+        ip_address: ipAddress || 'unknown',
+        license_version: raffleLicenseVersion,
+        payment_intent_id: paymentIntentId || null,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection('audit_log').add(entry);
+}
+
+function getSpinBaseAmount() {
+    const value = cleanAmount(configuredSpinBaseAmount || 0);
+    // Fall back to $100 if no config is set; adjust via env or functions config `raffle.spin_price`
+    return value > 0 ? value : 100;
+}
+
+function calculateSpinChargeTotals(baseAmount) {
+    // Blind charge requirement: amount is strictly tied to ticket number ($1–$500)
+    const cleanedBase = cleanAmount(baseAmount);
+    return {
+        baseAmount: cleanedBase,
+        mandatoryFees: 0,
+        processingFee: 0,
+        totalCharge: cleanedBase,
+        coverFees: false,
+    };
+}
+
+async function countPaidOrClaimedTickets(transaction) {
+    const db = admin.firestore();
+    const snapshot = await transaction.get(db.collection('spin_tickets'));
+    let soldCount = 0;
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.status === 'paid' || data.status === 'claimed' || data.status === 'reserved') {
+            soldCount += 1;
+        }
+    });
+    return soldCount;
+}
+
+async function reserveRandomAvailableTicket(transaction, purchaser, totalTickets, metadata = {}) {
+    const db = admin.firestore();
+
+    for (let i = 0; i < totalTickets * 2; i++) {
+        const randomTicket = randomTicketNumber(totalTickets);
+        const ticketRef = db.collection('spin_tickets').doc(randomTicket.toString());
+        const ticketSnap = await transaction.get(ticketRef);
+
+        if (!ticketSnap.exists || (ticketSnap.data().status !== 'paid' && ticketSnap.data().status !== 'claimed' && ticketSnap.data().status !== 'reserved')) {
+            transaction.set(ticketRef, {
+                id: randomTicket.toString(),
+                status: 'reserved',
+                reservedAt: admin.firestore.FieldValue.serverTimestamp(),
+                name: purchaser.name,
+                firstName: purchaser.firstName,
+                email: purchaser.email,
+                phoneNumber: purchaser.phone,
+                metadata,
+            }, { merge: true });
+            return randomTicket;
+        }
+    }
+
+    return null;
+}
+
+async function assignRandomAvailableTicket(transaction, purchaser, paymentIntentId, chargeSummary) {
+    const db = admin.firestore();
+    const TOTAL_TICKETS = Number(configuredSpinTicketTotal) || 500;
+
+    for (let i = 0; i < TOTAL_TICKETS * 2; i++) {
+        const randomTicket = randomTicketNumber(TOTAL_TICKETS);
+        const ticketRef = db.collection('spin_tickets').doc(randomTicket.toString());
+        const ticketSnap = await transaction.get(ticketRef);
+
+        if (!ticketSnap.exists || (ticketSnap.data().status !== 'paid' && ticketSnap.data().status !== 'claimed' && ticketSnap.data().status !== 'reserved')) {
+            transaction.set(ticketRef, {
+                id: randomTicket.toString(),
+                status: 'paid',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                name: purchaser.name,
+                firstName: purchaser.firstName,
+                email: purchaser.email,
+                phoneNumber: purchaser.phone,
+                paymentIntentId,
+                amountPaid: chargeSummary.totalCharge,
+                baseAmount: chargeSummary.baseAmount,
+                totalFeesPaid: cleanAmount(chargeSummary.totalCharge - chargeSummary.baseAmount),
+                processingFeePaid: chargeSummary.processingFee,
+                mandatoryFeesPaid: chargeSummary.mandatoryFees,
+                sourceApp: purchaser.sourceApp,
+            }, { merge: true });
+
+            return randomTicket;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Checks if the user is authorized as a super admin.
  */
@@ -326,6 +447,116 @@ function isSuperAdmin(context) {
 function isAdmin(context) {
     // Requires the user to be authenticated AND have the custom claim 'admin: true'
     return context.auth && (context.auth.token.admin === true || context.auth.token.superAdmin === true);
+}
+
+async function finalizeSpinPurchase(paymentIntent, source = 'direct') {
+    const db = admin.firestore();
+    const stripeClient = getStripeClient();
+    const TOTAL_TICKETS = Number(configuredSpinTicketTotal) || 500;
+    const metadata = paymentIntent.metadata || {};
+    const ipAddress = metadata.ipAddress || metadata.ip_address || 'unknown';
+    const ticketNumberFromMetadata = metadata.ticketNumber || metadata.ticket_number || metadata.ticket || null;
+
+    const purchaser = {
+        name: metadata.name || 'Valued Donor',
+        firstName: (metadata.name || '').split(' ')[0] || metadata.name || 'Donor',
+        email: metadata.email || '',
+        phone: metadata.phone || '',
+        sourceApp: metadata.sourceApp || `Mi Kamcha Yisroel Spin (${source})`,
+    };
+
+    const baseAmount = ticketNumberFromMetadata ? cleanAmount(ticketNumberFromMetadata) : (metadata.baseAmount ? cleanAmount(metadata.baseAmount) : getSpinBaseAmount());
+    const chargeSummary = calculateSpinChargeTotals(baseAmount);
+    chargeSummary.totalCharge = cleanAmount(paymentIntent.amount / 100);
+    const paymentIntentRef = db.collection('spin_payment_intents').doc(paymentIntent.id);
+
+    let isNewAssignment = false;
+    const { ticketNumber } = await db.runTransaction(async (transaction) => {
+        const existing = await transaction.get(paymentIntentRef);
+        if (existing.exists && existing.data().ticketNumber) {
+            return { ticketNumber: existing.data().ticketNumber };
+        }
+
+        const soldCount = await countPaidOrClaimedTickets(transaction);
+        if (soldCount >= TOTAL_TICKETS) {
+            throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+        }
+
+        const chosenTicket = ticketNumberFromMetadata
+            ? Number(ticketNumberFromMetadata)
+            : await assignRandomAvailableTicket(transaction, purchaser, paymentIntent.id, chargeSummary);
+
+        if (!chosenTicket) {
+            throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+        }
+
+        const ticketRef = db.collection('spin_tickets').doc(chosenTicket.toString());
+        const existingTicket = await transaction.get(ticketRef);
+        if (existingTicket.exists && existingTicket.data().status === 'paid' && existingTicket.data().paymentIntentId !== paymentIntent.id) {
+            throw new functions.https.HttpsError('already-exists', 'Ticket already sold to another purchaser.');
+        }
+
+        transaction.set(ticketRef, {
+            id: chosenTicket.toString(),
+            status: 'paid',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            name: purchaser.name,
+            firstName: purchaser.firstName,
+            email: purchaser.email,
+            phoneNumber: purchaser.phone,
+            paymentIntentId: paymentIntent.id,
+            amountPaid: chargeSummary.totalCharge,
+            baseAmount: chargeSummary.baseAmount,
+            totalFeesPaid: cleanAmount(chargeSummary.totalCharge - chargeSummary.baseAmount),
+            processingFeePaid: chargeSummary.processingFee,
+            mandatoryFeesPaid: chargeSummary.mandatoryFees,
+            sourceApp: purchaser.sourceApp,
+        }, { merge: true });
+
+        transaction.set(paymentIntentRef, {
+            paymentIntentId: paymentIntent.id,
+            ticketNumber: chosenTicket,
+            assignedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'assigned',
+            chargeSummary,
+            purchaser,
+            ipAddress,
+            licenseNumber: raffleLicenseNumber,
+            licenseVersion: raffleLicenseVersion,
+        }, { merge: true });
+
+        isNewAssignment = true;
+        return { ticketNumber: chosenTicket };
+    });
+
+    try {
+        await stripeClient.paymentIntents.update(paymentIntent.id, {
+            metadata: {
+                ...paymentIntent.metadata,
+                ticketNumber: ticketNumber.toString(),
+                ticket_number: ticketNumber.toString(),
+                ticketAssignedAt: new Date().toISOString(),
+            }
+        });
+    } catch (err) {
+        console.error('Failed to persist ticket metadata to Stripe:', err.message);
+    }
+
+    if (isNewAssignment) {
+        try {
+            await logAuditEntry({
+                userId: purchaser.email || purchaser.name,
+                amountCharged: cleanAmount(paymentIntent.amount / 100),
+                ticketNumber,
+                ipAddress,
+                paymentIntentId: paymentIntent.id,
+            });
+        } catch (logError) {
+            console.error('Failed to record audit log entry:', logError);
+        }
+    }
+
+    return { ticketNumber, chargeSummary };
 }
 
 async function verifyAdminHttpRequest(req) {
@@ -559,6 +790,10 @@ exports.cleanupReservedTickets = functions.runWith({ runtime: 'nodejs20' }).pubs
 
         const batch = db.batch();
         reservedTicketsSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.paymentIntentId) {
+                return;
+            }
             batch.delete(doc.ref);
         });
 
@@ -738,6 +973,247 @@ const ALLOWED_PAYMENT_ORIGINS = [
     'https://mi-keamcha-yisrael.web.app',
     'http://localhost:5000'
 ];
+
+exports.spinConfigHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequest((req, res) => {
+    const origin = req.get('Origin');
+    if (origin && ALLOWED_PAYMENT_ORIGINS.includes(origin)) {
+        res.set('Access-Control-Allow-Origin', origin);
+    } else {
+        res.set('Access-Control-Allow-Origin', '*');
+    }
+    res.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(204).send('');
+    }
+
+    if (req.method !== 'GET') {
+        return res.status(405).json({ message: 'Method not allowed' });
+    }
+
+    return res.status(200).json({
+        basePrice: getSpinBaseAmount(),
+        totalTickets: Number(configuredSpinTicketTotal) || 500,
+        licenseNumber: raffleLicenseNumber,
+    });
+});
+
+exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequest(async (req, res) => {
+    const origin = req.get('Origin');
+    if (origin && ALLOWED_PAYMENT_ORIGINS.includes(origin)) {
+        res.set('Access-Control-Allow-Origin', origin);
+    } else {
+        res.set('Access-Control-Allow-Origin', '*');
+    }
+    res.set('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(204).send('');
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: 'Method not allowed' });
+    }
+
+    try {
+        const stripeClient = getStripeClient();
+        const { name, email, phone, coverFees, paymentMethodId, consents } = req.body || {};
+
+        if (!name || !email || !phone || !paymentMethodId || !consents) {
+            return res.status(400).json({ message: 'Missing required fields: name, email, phone, paymentMethodId, or consents.' });
+        }
+
+        if (!consents.randomizedCharge || !consents.rulesNoRefund || !consents.ageEligibility) {
+            return res.status(400).json({ message: 'All consent checkboxes must be confirmed before charging.' });
+        }
+
+        const TOTAL_TICKETS = Number(configuredSpinTicketTotal) || 500;
+        const ipAddress = getClientIp(req);
+        let reservedTicketNumber = null;
+        let chargeSummary = null;
+
+        try {
+            reservedTicketNumber = await admin.firestore().runTransaction(async (transaction) => {
+                const soldCount = await countPaidOrClaimedTickets(transaction);
+                if (soldCount >= TOTAL_TICKETS) {
+                    throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+                }
+
+                const purchaser = {
+                    name,
+                    firstName: (name || '').split(' ')[0] || name,
+                    email,
+                    phone,
+                };
+
+                const ticket = await reserveRandomAvailableTicket(transaction, purchaser, TOTAL_TICKETS, { consents, ipAddress });
+                if (!ticket) {
+                    throw new functions.https.HttpsError('resource-exhausted', 'All tickets are sold out.');
+                }
+                return ticket;
+            });
+        } catch (availabilityError) {
+            if (availabilityError instanceof functions.https.HttpsError && availabilityError.code === 'resource-exhausted') {
+                return res.status(409).json({ message: 'Sold Out' });
+            }
+            throw availabilityError;
+        }
+
+        chargeSummary = calculateSpinChargeTotals(reservedTicketNumber);
+
+        const paymentIntent = await stripeClient.paymentIntents.create({
+            amount: Math.round(chargeSummary.totalCharge * 100),
+            currency: 'usd',
+            payment_method: paymentMethodId,
+            confirmation_method: 'automatic',
+            confirm: true,
+            automatic_payment_methods: { enabled: true },
+            receipt_email: email,
+            metadata: {
+                name,
+                email,
+                phone,
+                ipAddress,
+                ticketNumber: reservedTicketNumber.toString(),
+                ticket_number: reservedTicketNumber.toString(),
+                baseAmount: chargeSummary.baseAmount.toString(),
+                mandatoryFees: chargeSummary.mandatoryFees.toString(),
+                processingFee: chargeSummary.processingFee.toString(),
+                totalCharge: chargeSummary.totalCharge.toString(),
+                ticketsBought: '1',
+                entryType: 'spin',
+                sourceApp: 'Mi Kamcha Yisroel Spin (Direct)',
+                consent_randomized_charge: consents.randomizedCharge ? 'true' : 'false',
+                consent_rules_no_refund: consents.rulesNoRefund ? 'true' : 'false',
+                consent_age_eligibility: consents.ageEligibility ? 'true' : 'false',
+                licenseNumber: raffleLicenseNumber,
+                licenseVersion: raffleLicenseVersion,
+            },
+        });
+
+        const ticketRef = admin.firestore().collection('spin_tickets').doc(reservedTicketNumber.toString());
+        await ticketRef.set({
+            paymentIntentId: paymentIntent.id,
+            status: 'reserved',
+            reservedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        await admin.firestore().collection('spin_payment_intents').doc(paymentIntent.id).set({
+            ticketNumber: reservedTicketNumber,
+            status: paymentIntent.status,
+            chargeSummary,
+            purchaser: { name, email, phone },
+            ipAddress,
+            licenseNumber: raffleLicenseNumber,
+            licenseVersion: raffleLicenseVersion,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        if (paymentIntent.status === 'requires_action') {
+            return res.status(200).json({
+                status: 'requires_action',
+                clientSecret: paymentIntent.client_secret,
+                paymentIntentId: paymentIntent.id,
+                ticketNumber: reservedTicketNumber,
+                amountCharged: chargeSummary.totalCharge,
+            });
+        }
+
+        if (paymentIntent.status === 'succeeded') {
+            try {
+                const result = await finalizeSpinPurchase(paymentIntent, 'direct');
+                return res.status(200).json({
+                    status: 'succeeded',
+                    ticketNumber: result.ticketNumber,
+                    paymentIntentId: paymentIntent.id,
+                    chargeSummary: result.chargeSummary,
+                    amountCharged: result.chargeSummary?.totalCharge || cleanAmount(paymentIntent.amount / 100),
+                });
+            } catch (assignmentError) {
+                console.error('Ticket assignment failed after payment:', assignmentError);
+                try {
+                    await stripeClient.refunds.create({ payment_intent: paymentIntent.id });
+                } catch (refundError) {
+                    console.error('Refund after assignment failure failed:', refundError);
+                }
+
+                const isSoldOut = assignmentError instanceof functions.https.HttpsError && assignmentError.code === 'resource-exhausted';
+                const message = isSoldOut ? 'Sold Out' : 'Unable to assign ticket after payment.';
+                const statusCode = isSoldOut ? 409 : 500;
+                return res.status(statusCode).json({ message });
+            }
+        }
+
+        return res.status(202).json({ status: paymentIntent.status, paymentIntentId: paymentIntent.id });
+    } catch (error) {
+        console.error('Error charging payment method for spin:', error);
+        const stripeError = error?.raw || error;
+        const message = stripeError?.message || 'Payment could not be processed.';
+        const status = stripeError?.type === 'card_error' ? 402 : 500;
+
+        // Cleanup reservation if we created one but failed before success/next action
+        if (typeof reservedTicketNumber === 'number') {
+            try {
+                await admin.firestore().collection('spin_tickets').doc(reservedTicketNumber.toString()).delete();
+            } catch (cleanupError) {
+                console.error('Failed to clean up reserved ticket after charge error:', cleanupError);
+            }
+        }
+
+        return res.status(status).json({ message });
+    }
+});
+
+exports.spinFinalizePaymentHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequest(async (req, res) => {
+    const origin = req.get('Origin');
+    if (origin && ALLOWED_PAYMENT_ORIGINS.includes(origin)) {
+        res.set('Access-Control-Allow-Origin', origin);
+    } else {
+        res.set('Access-Control-Allow-Origin', '*');
+    }
+    res.set('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(204).send('');
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: 'Method not allowed' });
+    }
+
+    try {
+        const stripeClient = getStripeClient();
+        const { paymentIntentId } = req.body || {};
+
+        if (!paymentIntentId) {
+            return res.status(400).json({ message: 'Missing paymentIntentId.' });
+        }
+
+        const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+        if (paymentIntent.status !== 'succeeded') {
+            return res.status(409).json({ message: 'Payment is not completed.' });
+        }
+
+        const result = await finalizeSpinPurchase(paymentIntent, 'finalize-endpoint');
+        return res.status(200).json({
+            status: 'succeeded',
+            ticketNumber: result.ticketNumber,
+            paymentIntentId: paymentIntent.id,
+            chargeSummary: result.chargeSummary,
+            amountCharged: result.chargeSummary?.totalCharge || cleanAmount(paymentIntent.amount / 100),
+        });
+    } catch (error) {
+        console.error('Error finalizing spin payment:', error);
+        const message = error instanceof functions.https.HttpsError && error.code === 'resource-exhausted'
+            ? 'Sold Out'
+            : (error.message || 'Failed to finalize payment.');
+        const status = (error instanceof functions.https.HttpsError && error.code === 'resource-exhausted') ? 409 : 500;
+        return res.status(status).json({ message });
+    }
+});
 
 async function createSpinPaymentIntentCore(data) {
     let ticketNumber;
@@ -999,33 +1475,12 @@ exports.stripeWebhook = functions.runWith({ runtime: 'nodejs20' }).https.onReque
 
         // --- spin Ticket Processing (Spin to Win) ---
         if (entryType === 'spin') {
-            // ticketNumber is the document ID/base price in USD
-            const spinTicketRef = db.collection('spin_tickets').doc(ticketNumber); 
-            
-            // The amountPaid field stores the base amount (ticketNumber in this case)
-            const baseSaleAmount = cleanAmount(baseAmount || ticketNumber);
-            const amountForSaleRecord = amountCharged || cleanAmount(totalCharge) || baseSaleAmount;
-            const totalFeesPaid = cleanAmount(amountForSaleRecord - baseSaleAmount);
-            
-                await spinTicketRef.update({
-                    status: 'paid',
-                    paymentIntentId: paymentIntent.id,
-                    name,
-                    firstName: firstName,
-                    email,
-                    phoneNumber: phone,
-                    amountPaid: amountForSaleRecord, // Store total collected including any fees
-                    baseAmount: baseSaleAmount,
-                    totalFeesPaid,
-                    processingFeePaid: cleanAmount(processingFee || (coverFees === 'true' ? totalFeesPaid : 0)),
-                    mandatoryFeesPaid: cleanAmount(mandatoryFees || (totalFeesPaid - (processingFee || 0))),
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                    sourceApp: sourceApp || 'Mi Kamcha Yisroel Spin (Webhook)',
-                });
-
-            // Update the temporary PI status doc (if it existed) to prevent reprocessing
-            // NOTE: Since the ticket itself is the primary record, we don't need a separate PI status doc here.
-
+            try {
+                await finalizeSpinPurchase(paymentIntent, 'webhook');
+            } catch (assignmentError) {
+                console.error('Webhook ticket assignment failed:', assignmentError);
+                // Avoid failing webhook due to sold-out race; report but acknowledge.
+            }
         }
         
         // --- Donation Processing ---
