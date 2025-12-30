@@ -17,29 +17,10 @@
     <!-- Favicon using the updated local logo -->
     <link rel="icon" type="image/png" href="/assets/logo.png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/tailwind.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-       <!-- Custom Tailwind Configuration for Mi Kamcha Yisroel Colors -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        // Logo Colors
-                        'ma-navy': '#0A0E27',
-                        'ma-gold': '#C9A961',
-                        // Darker shade for gradient start
-                        'ma-dark': '#050810', 
-                        // Complementary dark for inner panels/cards
-                        'ma-slate': '#0F1527', 
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
         html {
             scroll-behavior: smooth;
@@ -485,7 +466,7 @@
                                     preload="metadata"
                                     poster="/assets/video-poster.jpg"
                                 >
-                                    <source src="https://mi-keamcha-yisrael.web.app/assets/Video.mp4" type="video/mp4">
+                                    <source src="https://testingamoe.web.app/assets/Video.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>
@@ -909,7 +890,13 @@
             }
 
             function showGlobalLoadingOverlay(message = "Loading...", disableForm = false) {
-                globalSpinnerText.textContent = message;
+                if (message) {
+                    globalSpinnerText.textContent = message;
+                    globalSpinnerText.classList.remove('hidden');
+                } else {
+                    globalSpinnerText.textContent = '';
+                    globalSpinnerText.classList.add('hidden');
+                }
                 globalLoadingOverlay.classList.remove('hidden');
             }
 
@@ -927,6 +914,35 @@
                 } catch (error) {
                     console.error('Failed to load spin config. Using defaults.', error);
                 }
+            }
+
+            async function pollPaymentStatus(paymentIntentId, maxAttempts = 15, delayMs = 1200) {
+                if (!paymentIntentId) {
+                    throw new Error('Missing payment reference; cannot confirm payment.');
+                }
+
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    try {
+                        const statusResponse = await fetch(`${functionsBaseUrl}/spinPaymentStatusHttp?paymentIntentId=${encodeURIComponent(paymentIntentId)}`);
+                        const statusPayload = await statusResponse.json().catch(() => ({}));
+
+                        if (statusResponse.ok) {
+                            const status = (statusPayload.status || '').toLowerCase();
+                            if (status === 'assigned' && statusPayload.ticketNumber) {
+                                return statusPayload;
+                            }
+                            if (status === 'failed') {
+                                throw new Error(statusPayload.message || 'Payment failed to complete.');
+                            }
+                        }
+                    } catch (pollError) {
+                        if (attempt === maxAttempts - 1) throw pollError;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                }
+
+                throw new Error('Timed out waiting for payment confirmation.');
             }
 
             function mountPaymentElement() {
@@ -1083,7 +1099,7 @@
                 }
 
                 try {
-                    showGlobalLoadingOverlay('Processing payment...');
+                    showGlobalLoadingOverlay('');
                     if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
@@ -1145,13 +1161,27 @@
                     }
 
                     const handleSuccess = async (payload) => {
-                        spinTicketNumber = payload.ticketNumber;
-                        chargeSummary = payload.chargeSummary || chargeSummary || {
-                            baseAmount: cleanAmount(payload.ticketNumber || 0),
-                            totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
-                            mandatoryFees: 0,
-                            processingFee: 0,
-                        };
+                        const paymentIntentId = payload.paymentIntentId;
+                        showGlobalLoadingOverlay('Finalizing your ticket...');
+
+                        try {
+                            const statusPayload = await pollPaymentStatus(paymentIntentId);
+                            spinTicketNumber = statusPayload.ticketNumber || payload.ticketNumber;
+                            chargeSummary = statusPayload.chargeSummary || payload.chargeSummary || chargeSummary || {
+                                baseAmount: cleanAmount(payload.ticketNumber || 0),
+                                totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
+                                mandatoryFees: 0,
+                                processingFee: 0,
+                            };
+                        } catch (statusError) {
+                            hideGlobalLoadingOverlay();
+                            spinStripePayButton.disabled = false;
+                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                            showCustomPopup('Payment Pending', statusError.message || 'Payment is still being confirmed. Please try again.');
+                            return;
+                        }
+
                         hideGlobalLoadingOverlay();
 
                         spinStripePaymentElement.classList.add('hidden');
