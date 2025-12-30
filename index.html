@@ -857,8 +857,7 @@
             // Stripe Test Public Key added here
             const stripe = Stripe('pk_live_51MEdj9GYZgaCp9bFFhkdmLJJYW6uGRPm3CF2CMIJfpkGEmXXcfVQw2LFdvLxXrbiTMZzfaB3u0D6sS45Xw92x2zz00euIhE5yK'); 
 
-            // Updated Firebase Config for Mi Kamcha Yisroel
-            const firebaseConfig = {
+            const defaultFirebaseConfig = {
                 apiKey: "AIzaSyApFDhSZhG46VrfgrR7l-PnZNF_b1k3xlY",
                 authDomain: "mi-keamcha-yisrael.firebaseapp.com",
                 projectId: "mi-keamcha-yisrael",
@@ -866,10 +865,30 @@
                 messagingSenderId: "918243863180",
                 appId: "1:918243863180:web:c16c95d1e67f0a8d22e9a9"
             };
-            if (firebaseConfig?.projectId) {
-                functionsBaseUrl = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net`;
+
+            async function initializeFirebase() {
+                try {
+                    const response = await fetch('/__/firebase/init.json');
+                    if (response.ok) {
+                        const hostingConfig = await response.json();
+                        firebase.initializeApp(hostingConfig);
+                        if (hostingConfig?.projectId) {
+                            functionsBaseUrl = `https://us-central1-${hostingConfig.projectId}.cloudfunctions.net`;
+                        }
+                        return hostingConfig;
+                    }
+                } catch (configError) {
+                    console.warn('Falling back to static Firebase config:', configError);
+                }
+
+                firebase.initializeApp(defaultFirebaseConfig);
+                if (defaultFirebaseConfig?.projectId) {
+                    functionsBaseUrl = `https://us-central1-${defaultFirebaseConfig.projectId}.cloudfunctions.net`;
+                }
+                return defaultFirebaseConfig;
             }
-            firebase.initializeApp(firebaseConfig);
+
+            await initializeFirebase();
             const db = firebase.firestore();
             const auth = firebase.auth();
 
