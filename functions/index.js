@@ -1063,13 +1063,17 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
 
         chargeSummary = calculateSpinChargeTotals(reservedTicketNumber);
 
+        const requestOrigin = req.get('origin') || 'https://testingamoe.web.app';
+        const returnUrl = `${requestOrigin.replace(/\/$/, '')}/successful/`;
+
         const paymentIntent = await stripeClient.paymentIntents.create({
             amount: Math.round(chargeSummary.totalCharge * 100),
             currency: 'usd',
             payment_method: paymentMethodId,
-            confirmation_method: 'automatic',
+            description: `Mi Keamcha Yisrael Spin - Ticket ${reservedTicketNumber}`,
             confirm: true,
             automatic_payment_methods: { enabled: true },
+            return_url: returnUrl,
             receipt_email: email,
             metadata: {
                 name,
