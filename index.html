@@ -575,14 +575,25 @@
                      <div id="spin-stripe-payment-element" class="hidden">
                             <h2 class="bebas-neue text-3xl font-bold text-white mb-4">Payment Details</h2>
                          <div class="mb-4 text-sm text-gray-200 bg-ma-slate/50 p-3 rounded-lg">
-                             <p class="font-semibold text-ma-gold mb-1">Charges include:</p>
-                             <ul class="list-disc list-inside space-y-1 text-gray-200">
-                                 <li>✨ International cards (online): +1% extra</li>
-                                 <li>✨ Currency conversion: +1% extra</li>
-                             </ul>
+                             <p class="font-semibold text-ma-gold mb-1">Randomized Charge Notice</p>
+                             <p>You authorize a one-time randomized charge between $1.00 and $500.00. The final amount is determined by the ticket number assigned after you authorize payment.</p>
                          </div>
                          <div id="spin-payment-element-container"></div>
-                         <button id="spin-stripe-pay-button" class="w-full py-3 mt-4 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 hidden glow-button">
+                         <div class="mt-6 space-y-4 text-sm text-gray-200">
+                            <label class="flex items-start space-x-3">
+                                <input type="checkbox" id="consent-random-charge" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                                <span>I authorize a one-time randomized charge between $1.00 and $500.00. I understand the final amount is determined by the computer based on my assigned ticket number and is revealed after payment.</span>
+                            </label>
+                            <label class="flex items-start space-x-3">
+                                <input type="checkbox" id="consent-rules-no-refund" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                                <span>I agree to the Official Raffle Rules and the No-Refund Policy.</span>
+                            </label>
+                            <label class="flex items-start space-x-3">
+                                <input type="checkbox" id="consent-age-eligibility" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                                <span>I certify that I am 18+ years of age and am legally permitted to participate in this raffle under my local jurisdiction.</span>
+                            </label>
+                         </div>
+                         <button id="spin-stripe-pay-button" class="w-full py-3 mt-4 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 hidden glow-button disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-ma-gold" disabled>
                              <span class="button-text">Pay Now</span>
                              <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-ma-navy border-opacity-20 rounded-full hidden"></div>
                          </button>
@@ -714,6 +725,7 @@
                     <h3 class="text-ma-gold font-bold mb-2">Quick Links</h3>
                     <ul class="text-sm text-gray-400 space-y-1">
                         <li><a href="/" class="hover:text-ma-gold transition-colors">Home</a></li>
+                        <li><a href="/rules.html" class="hover:text-ma-gold transition-colors">Official Rules</a></li>
                         <li><a href="/terms.html" class="hover:text-ma-gold transition-colors">Terms of Service</a></li>
                         <li><a href="/privacy.html" class="hover:text-ma-gold transition-colors">Privacy Policy</a></li>
                     </ul>
@@ -726,6 +738,7 @@
                 </div>
             </div>
             <div class="border-t border-ma-gold/20 pt-4 text-center">
+                <p class="text-sm text-ma-gold font-semibold mb-1">State Raffle License #: STATE-RAFFLE-LIC-0000</p>
                 <p class="text-sm text-gray-500 mb-1">
                     &copy; 2026 Mi Kamcha Yisroel. All Rights Reserved.
                 </p>
@@ -807,6 +820,10 @@
             const processingFeeNote = document.getElementById('processing-fee-note');
             const chargeSummaryText = document.getElementById('charge-summary-text');
             const payButtonLabel = spinStripePayButton.querySelector('.button-text');
+            const payButtonSpinner = spinStripePayButton.querySelector('.button-spinner');
+            const consentRandomCharge = document.getElementById('consent-random-charge');
+            const consentRulesNoRefund = document.getElementById('consent-rules-no-refund');
+            const consentAgeEligibility = document.getElementById('consent-age-eligibility');
             
             // Flip Clock Digit IDs (reused for static display)
             const digitHundredsId = 'digit-hundreds';
@@ -836,6 +853,12 @@
                 coverFeesTooltipWrapper.addEventListener('mouseleave', hideTooltip);
                 coverFeesTooltipWrapper.addEventListener('click', () => coverFeesTooltip.classList.toggle('hidden'));
             }
+
+            [consentRandomCharge, consentRulesNoRefund, consentAgeEligibility].forEach(el => {
+                if (el) {
+                    el.addEventListener('change', updatePayButtonState);
+                }
+            });
             
             // --- Global State (UPDATED: 500 tickets) ---
             let TOTAL_SPIN_TICKETS = 500;
@@ -846,7 +869,6 @@
             let spinTicketNumber = 0;
             let flashInterval;
             let chargeSummary = null;
-            let spinBasePrice = 100;
             const cleanAmount = (value = 0) => Math.round(Number(value || 0) * 100) / 100;
 
             // --- Stripe & Firebase Initialization (UPDATED for SANDBOX) ---
@@ -879,6 +901,13 @@
                 setTimeout(() => { customPopupOverlay.classList.add('hidden'); }, 300);
             }
 
+            function updatePayButtonState() {
+                const allConsentsChecked = consentRandomCharge?.checked && consentRulesNoRefund?.checked && consentAgeEligibility?.checked;
+                if (spinStripePayButton) {
+                    spinStripePayButton.disabled = !allConsentsChecked;
+                }
+            }
+
             function showGlobalLoadingOverlay(message = "Loading...", disableForm = false) {
                 globalSpinnerText.textContent = message;
                 globalLoadingOverlay.classList.remove('hidden');
@@ -893,7 +922,6 @@
                     const response = await fetch(`${functionsBaseUrl}/spinConfigHttp`);
                     const payload = await response.json();
                     if (response.ok) {
-                        spinBasePrice = cleanAmount(payload.basePrice || spinBasePrice);
                         TOTAL_SPIN_TICKETS = payload.totalTickets || TOTAL_SPIN_TICKETS;
                     }
                 } catch (error) {
@@ -901,22 +929,14 @@
                 }
             }
 
-            function getChargeSummary(coverFeesSelected) {
-                const baseAmount = cleanAmount(spinBasePrice);
-                const mandatoryFees = cleanAmount(baseAmount * 0.02);
-                const processingFee = coverFeesSelected ? cleanAmount(baseAmount * 0.022 + 0.30) : 0;
-                const totalCharge = cleanAmount(baseAmount + mandatoryFees + processingFee);
-                return { baseAmount, mandatoryFees, processingFee, totalCharge, coverFees: !!coverFeesSelected };
-            }
-
-            function mountPaymentElement(summary) {
+            function mountPaymentElement() {
                 if (elements && paymentElement) {
                     paymentElement.unmount();
                 }
 
                 elements = stripe.elements({
                     mode: 'payment',
-                    amount: Math.round(summary.totalCharge * 100),
+                    amount: 50000, // Display the maximum possible ($500) for randomized charges
                     currency: 'usd',
                     fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' }],
                 });
@@ -949,18 +969,7 @@
 
             function updateChargeSummaryUI(summary) {
                 if (!chargeSummaryText) return;
-                if (!summary) {
-                    chargeSummaryText.textContent = '';
-                    if (processingFeeNote) processingFeeNote.classList.add('hidden');
-                    if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
-                    return;
-                }
-
-                const baseAmount = summary.baseAmount ?? spinBasePrice;
-                if (processingFeeNote) {
-                    processingFeeNote.classList.toggle('hidden', !summary.coverFees);
-                }
-                chargeSummaryText.textContent = `Base ticket: $${cleanAmount(baseAmount).toFixed(2)}${summary.coverFees ? ` | processing: +2.2% + $0.30` : ''}`;
+                chargeSummaryText.textContent = 'You authorize a randomized charge between $1.00 and $500.00. The exact amount is determined server-side after you click Pay.';
                 if (payButtonLabel) {
                     payButtonLabel.textContent = 'Pay Now';
                 }
@@ -1037,6 +1046,8 @@
             
             await loadSpinConfig();
             initializeScoreboard();
+            updateChargeSummaryUI();
+            updatePayButtonState();
             
             spinProceedToPaymentButton.addEventListener('click', async () => {
                 if (!validateInitialForm()) {
@@ -1046,22 +1057,13 @@
                 showGlobalLoadingOverlay("Preparing your payment...", true);
                 
                 try {
-                    chargeSummary = getChargeSummary(coverFeesCheckbox && coverFeesCheckbox.checked);
-                    mountPaymentElement(chargeSummary);
-                    updateChargeSummaryUI(chargeSummary);
-
-                    if (coverFeesCheckbox) {
-                        coverFeesCheckbox.disabled = false;
-                        coverFeesCheckbox.addEventListener('change', () => {
-                            chargeSummary = getChargeSummary(coverFeesCheckbox.checked);
-                            mountPaymentElement(chargeSummary);
-                            updateChargeSummaryUI(chargeSummary);
-                        });
-                    }
+                    mountPaymentElement();
+                    updateChargeSummaryUI();
 
                     initialForm.classList.add('hidden');
                     spinStripePaymentElement.classList.remove('hidden');
                     spinStripePayButton.classList.remove('hidden');
+                    updatePayButtonState();
                 } catch (error) {
                     console.error('Error setting up payment:', error);
                     const errorMessage = error.details?.message || error.message || 'Could not set up payment. Please check your connection and try again.';
@@ -1081,6 +1083,9 @@
 
                 try {
                     showGlobalLoadingOverlay('Processing payment...');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
+                    if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
+                    spinStripePayButton.disabled = true;
                     const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
                         elements,
                         params: {
@@ -1094,6 +1099,9 @@
 
                     if (pmError) {
                         hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
                         showCustomPopup('Payment Failed', pmError.message || 'Please check your card details and try again.');
                         return;
                     }
@@ -1105,8 +1113,12 @@
                             name: spinNameInput.value.trim(),
                             email: spinEmailInput.value.trim(),
                             phone: spinPhoneInput.value.trim(),
-                            coverFees: coverFeesCheckbox && coverFeesCheckbox.checked,
                             paymentMethodId: paymentMethod.id,
+                            consents: {
+                                randomizedCharge: consentRandomCharge?.checked,
+                                rulesNoRefund: consentRulesNoRefund?.checked,
+                                ageEligibility: consentAgeEligibility?.checked,
+                            }
                         })
                     });
 
@@ -1114,6 +1126,9 @@
 
                     if (!chargeResponse.ok) {
                         hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
                         const message = chargePayload.message || 'Payment could not be processed. Please try again.';
                         showCustomPopup('Payment Error', message);
                         return;
@@ -1121,7 +1136,12 @@
 
                     const handleSuccess = async (payload) => {
                         spinTicketNumber = payload.ticketNumber;
-                        chargeSummary = payload.chargeSummary || chargeSummary;
+                        chargeSummary = payload.chargeSummary || chargeSummary || {
+                            baseAmount: cleanAmount(payload.ticketNumber || 0),
+                            totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
+                            mandatoryFees: 0,
+                            processingFee: 0,
+                        };
                         hideGlobalLoadingOverlay();
 
                         spinStripePaymentElement.classList.add('hidden');
@@ -1131,7 +1151,7 @@
 
                         setTimeout(() => {
                             const paidTotal = chargeSummary?.totalCharge || 0;
-                            const baseForSuccess = chargeSummary?.baseAmount || spinBasePrice;
+                            const baseForSuccess = chargeSummary?.baseAmount || spinTicketNumber;
                             const feesPaid = cleanAmount(paidTotal - baseForSuccess);
                             stopSpinAnimationAndReveal(spinTicketNumber, paidTotal, feesPaid, baseForSuccess);
                         }, SPIN_DURATION);
@@ -1143,6 +1163,9 @@
                         const actionResult = await stripe.handleNextAction({ clientSecret });
                         if (actionResult.error) {
                             showCustomPopup('Payment Authentication Failed', actionResult.error.message || 'Authentication failed. Please try again.');
+                            spinStripePayButton.disabled = false;
+                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
                             return;
                         }
 
@@ -1156,6 +1179,9 @@
 
                         if (!finalizeResponse.ok) {
                             hideGlobalLoadingOverlay();
+                            spinStripePayButton.disabled = false;
+                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
                             showCustomPopup('Finalization Error', finalizePayload.message || 'Could not finalize your ticket.');
                             return;
                         }
@@ -1168,6 +1194,9 @@
                 } catch (error) {
                     console.error('Unexpected payment error:', error);
                     hideGlobalLoadingOverlay();
+                    spinStripePayButton.disabled = false;
+                    if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
                     showCustomPopup('Payment Error', error.message || 'Payment could not be completed.');
                 }
             });
