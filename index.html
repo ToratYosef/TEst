@@ -17,28 +17,10 @@
     <!-- Favicon using the updated local logo -->
     <link rel="icon" type="image/png" href="/assets/logo.png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/tailwind.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-       <!-- Custom Tailwind Configuration for Mi Kamcha Yisroel Colors -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        // Logo Colors
-                        'ma-navy': '#0A0E27',
-                        'ma-gold': '#C9A961',
-                        // Darker shade for gradient start
-                        'ma-dark': '#050810', 
-                        // Complementary dark for inner panels/cards
-                        'ma-slate': '#0F1527', 
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
         html {
@@ -863,7 +845,7 @@
             // --- Global State (UPDATED: 500 tickets) ---
             let TOTAL_SPIN_TICKETS = 500;
             const SPIN_DURATION = 3000; // Updated to 3 seconds (3000ms)
-            const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+            let functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
             let elements;
             let paymentElement;
             let spinTicketNumber = 0;
@@ -884,6 +866,9 @@
                 messagingSenderId: "918243863180",
                 appId: "1:918243863180:web:c16c95d1e67f0a8d22e9a9"
             };
+            if (firebaseConfig?.projectId) {
+                functionsBaseUrl = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net`;
+            }
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
             const auth = firebase.auth();
@@ -1086,6 +1071,15 @@
                     if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
+                    const { error: submitError } = await elements.submit();
+                    if (submitError) {
+                        hideGlobalLoadingOverlay();
+                        spinStripePayButton.disabled = false;
+                        if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                        if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                        showCustomPopup('Payment Details Needed', submitError.message || 'Please complete your payment details.');
+                        return;
+                    }
                     const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
                         elements,
                         params: {
@@ -1190,7 +1184,20 @@
                         return;
                     }
 
-                    await handleSuccess(chargePayload);
+                    if (chargePayload.status === 'succeeded') {
+                        await handleSuccess(chargePayload);
+                        return;
+                    }
+
+                    hideGlobalLoadingOverlay();
+                    spinStripePayButton.disabled = false;
+                    if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+
+                    const pendingMessage = chargePayload.status
+                        ? `Your payment is ${chargePayload.status.replace(/_/g, ' ')}. We'll email you once your ticket is confirmed.`
+                        : 'Your payment is still processing. Please check your email for confirmation.';
+                    showCustomPopup('Payment Processing', pendingMessage);
                 } catch (error) {
                     console.error('Unexpected payment error:', error);
                     hideGlobalLoadingOverlay();
