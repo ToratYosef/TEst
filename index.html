@@ -363,7 +363,7 @@
     <!-- Spinning Wheel Modal -->
     <div id="spinModal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Spinning... </h2>
+            <h2 id="spinModalTitle" class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Processing Payment...</h2>
             <!-- Updated border color to Gold -->
             <div class="bg-slate-700/60 w-64 h-64 mx-auto flex items-center justify-center rounded-full shadow-lg border-4 border-ma-gold/20 mb-8">
                 <p id="modalFlashingNumber" class="bebas-neue text-8xl font-bold text-white"></p> 
@@ -802,6 +802,7 @@
             const chargeSummaryText = document.getElementById('charge-summary-text');
             const payButtonLabel = spinStripePayButton.querySelector('.button-text');
             const payButtonSpinner = spinStripePayButton.querySelector('.button-spinner');
+            const spinModalTitle = document.getElementById('spinModalTitle');
             const consentRandomCharge = document.getElementById('consent-random-charge');
             const consentRulesNoRefund = document.getElementById('consent-rules-no-refund');
             const consentAgeEligibility = document.getElementById('consent-age-eligibility');
@@ -996,6 +997,9 @@
             // --- Spin to Win Logic ---
 
             function startSpinAnimation() {
+                if (spinModalTitle) {
+                    spinModalTitle.textContent = 'Spinning...';
+                }
                 modalFlashingNumber.classList.remove('result-blink-red'); // Clear final state
                 modalFlashingNumber.classList.add('flashing-text'); // ADD flashing during spin
                 modalResultDisplay.classList.add('hidden');
@@ -1100,7 +1104,7 @@
 
                 try {
                     showGlobalLoadingOverlay('');
-                    if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
+                    if (payButtonLabel) payButtonLabel.textContent = 'Processing Payment...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
                     const { error: submitError } = await elements.submit();
