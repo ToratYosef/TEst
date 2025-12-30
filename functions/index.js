@@ -1070,6 +1070,7 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
             amount: Math.round(chargeSummary.totalCharge * 100),
             currency: 'usd',
             payment_method: paymentMethodId,
+            description: `Mi Keamcha Yisrael Spin - Ticket ${reservedTicketNumber}`,
             confirm: true,
             automatic_payment_methods: { enabled: true },
             return_url: returnUrl,
