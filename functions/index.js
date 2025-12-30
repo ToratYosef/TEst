@@ -1024,8 +1024,8 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
         const stripeClient = getStripeClient();
         const { name, email, phone, coverFees, paymentMethodId, consents } = req.body || {};
 
-        if (!name || !email || !phone || !paymentMethodId || !consents) {
-            return res.status(400).json({ message: 'Missing required fields: name, email, phone, paymentMethodId, or consents.' });
+        if (!name || !email || !phone || !consents) {
+            return res.status(400).json({ message: 'Missing required fields: name, email, phone, or consents.' });
         }
 
         if (!consents.randomizedCharge || !consents.rulesNoRefund || !consents.ageEligibility) {
@@ -1069,9 +1069,8 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
         const paymentIntent = await stripeClient.paymentIntents.create({
             amount: Math.round(chargeSummary.totalCharge * 100),
             currency: 'usd',
-            payment_method: paymentMethodId,
             confirmation_method: 'automatic',
-            confirm: true,
+            confirm: false,
             automatic_payment_methods: { enabled: true },
             receipt_email: email,
             metadata: {
@@ -1114,42 +1113,14 @@ exports.spinChargeHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequ
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
 
-        if (paymentIntent.status === 'requires_action') {
-            return res.status(200).json({
-                status: 'requires_action',
-                clientSecret: paymentIntent.client_secret,
-                paymentIntentId: paymentIntent.id,
-                ticketNumber: reservedTicketNumber,
-                amountCharged: chargeSummary.totalCharge,
-            });
-        }
-
-        if (paymentIntent.status === 'succeeded') {
-            try {
-                const result = await finalizeSpinPurchase(paymentIntent, 'direct');
-                return res.status(200).json({
-                    status: 'succeeded',
-                    ticketNumber: result.ticketNumber,
-                    paymentIntentId: paymentIntent.id,
-                    chargeSummary: result.chargeSummary,
-                    amountCharged: result.chargeSummary?.totalCharge || cleanAmount(paymentIntent.amount / 100),
-                });
-            } catch (assignmentError) {
-                console.error('Ticket assignment failed after payment:', assignmentError);
-                try {
-                    await stripeClient.refunds.create({ payment_intent: paymentIntent.id });
-                } catch (refundError) {
-                    console.error('Refund after assignment failure failed:', refundError);
-                }
-
-                const isSoldOut = assignmentError instanceof functions.https.HttpsError && assignmentError.code === 'resource-exhausted';
-                const message = isSoldOut ? 'Sold Out' : 'Unable to assign ticket after payment.';
-                const statusCode = isSoldOut ? 409 : 500;
-                return res.status(statusCode).json({ message });
-            }
-        }
-
-        return res.status(202).json({ status: paymentIntent.status, paymentIntentId: paymentIntent.id });
+        return res.status(200).json({
+            status: 'requires_confirmation',
+            clientSecret: paymentIntent.client_secret,
+            paymentIntentId: paymentIntent.id,
+            ticketNumber: reservedTicketNumber,
+            chargeSummary,
+            amountCharged: chargeSummary.totalCharge,
+        });
     } catch (error) {
         console.error('Error charging payment method for spin:', error);
         const stripeError = error?.raw || error;
