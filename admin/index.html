@@ -345,7 +345,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const functions = firebase.functions(); // Initialize functions
-        const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
+        const functionsBaseUrl = 'https://us-central1-testingamoe.cloudfunctions.net';
 
         // --- DOM Elements ---
         const loadingState = document.getElementById('loading-state');
@@ -595,8 +595,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/markTicketPaidHttp`, {
                     method: 'POST',
                     headers: {
@@ -828,8 +826,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/sendDrawingSoonEmailHttp`, {
                     method: 'POST',
                     headers: {
@@ -870,8 +866,6 @@
                 }
 
                 const idToken = await user.getIdToken();
-                const functionsBaseUrl = 'https://us-central1-mi-keamcha-yisrael.cloudfunctions.net';
-
                 const response = await fetch(`${functionsBaseUrl}/sendTicketsRunningOutEmailHttp`, {
                     method: 'POST',
                     headers: {
