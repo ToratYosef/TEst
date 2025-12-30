@@ -890,7 +890,13 @@
             }
 
             function showGlobalLoadingOverlay(message = "Loading...", disableForm = false) {
-                globalSpinnerText.textContent = message;
+                if (message) {
+                    globalSpinnerText.textContent = message;
+                    globalSpinnerText.classList.remove('hidden');
+                } else {
+                    globalSpinnerText.textContent = '';
+                    globalSpinnerText.classList.add('hidden');
+                }
                 globalLoadingOverlay.classList.remove('hidden');
             }
 
@@ -1064,7 +1070,7 @@
                 }
 
                 try {
-                    showGlobalLoadingOverlay('Processing payment...');
+                    showGlobalLoadingOverlay('');
                     if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
