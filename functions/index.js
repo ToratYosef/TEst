@@ -971,7 +971,10 @@ exports.deleteExpiredReservedTicketsHttp = functions.runWith({ runtime: 'nodejs2
 
 const ALLOWED_PAYMENT_ORIGINS = [
     'https://mi-keamcha-yisrael.web.app',
-    'http://localhost:5000'
+    'https://mi-keamcha-yisrael.firebaseapp.com',
+    'http://localhost:5000',
+    'https://testingamoe.web.app',
+    'https://testingamoe.firebaseapp.com'
 ];
 
 exports.spinConfigHttp = functions.runWith({ runtime: 'nodejs20' }).https.onRequest((req, res) => {
