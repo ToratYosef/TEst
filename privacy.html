@@ -15,10 +15,10 @@
             theme: {
                 extend: {
                     colors: {
-                        'ma-navy': '#0A0E27',
-                        'ma-gold': '#C9A961',
-                        'ma-dark': '#050810',
-                        'ma-slate': '#0F1527',
+                        'ma-navy': '#0f172a',
+                        'ma-gold': '#2563eb',
+                        'ma-dark': '#0b1220',
+                        'ma-slate': '#1f2937',
                     }
                 }
             }
@@ -28,15 +28,15 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #050810;
-            background-image: linear-gradient(135deg, #050810 0%, #0A0E27 100%);
+            background-color: #f7f7f8;
+            color: #0f172a;
         }
         .bebas-neue {
             font-family: 'Bebas Neue', sans-serif;
         }
     </style>
 </head>
-<body class="text-white min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-slate-50 text-ma-navy">
 
     <!-- Header -->
     <header class="bg-black/40 py-4 px-4 md:px-12 w-full z-50 shadow-2xl backdrop-blur-sm border-b border-ma-gold/20">
@@ -48,9 +48,8 @@
             <a href="/" class="py-2 px-5 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">Back to Home</a>
         </nav>
     </header>
-
-    <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-12 max-w-4xl">
+<!-- Main Content -->
+    <main class="flex-grow container pt-24 mx-auto px-4 py-12 max-w-4xl">
         <h1 class="bebas-neue text-4xl md:text-5xl font-bold text-ma-gold mb-8">Privacy Policy</h1>
         
         <div class="bg-ma-slate/30 backdrop-blur-sm p-8 rounded-2xl border border-ma-gold/20 space-y-6 text-gray-300">
@@ -166,6 +165,7 @@
             </div>
         </div>
     </footer>
+
 
 </body>
 </html>

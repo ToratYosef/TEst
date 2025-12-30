@@ -14,8 +14,8 @@
     <meta property="og:description" content="Join the raffle to support saving souls! Win a Rolex, vacation, or cash prizes.">
     <meta property="og:image" content="https://mikamcharaffle.com/assets/flyer.jpeg">
     <meta property="og:type" content="website">
-    <!-- Favicon using the updated local logo -->
-    <link rel="icon" type="image/png" href="/assets/logo.png">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/assets/video-poster.jpg">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,19 +27,18 @@
             theme: {
                 extend: {
                     colors: {
-                        // Logo Colors
-                        'ma-navy': '#0A0E27',
-                        'ma-gold': '#C9A961',
-                        // Darker shade for gradient start
-                        'ma-dark': '#050810', 
-                        // Complementary dark for inner panels/cards
-                        'ma-slate': '#0F1527', 
+                        'ma-navy': '#0f172a',
+                        'ma-gold': '#2563eb',
+                        'ma-dark': '#0b1220',
+                        'ma-slate': '#1f2937',
                     }
                 }
             }
         }
     </script>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         html {
             scroll-behavior: smooth;
@@ -47,9 +46,8 @@
         /* --- General & Global Styles (Merged) --- */
         body {
             font-family: 'Inter', sans-serif;
-            /* Applying new Black gradient with gold accents */
-            background-color: #050810;
-            background-image: linear-gradient(135deg, #050810 0%, #0A0E27 100%);
+            background-color: #f7f7f8;
+            color: #0f172a;
             overflow-x: hidden;
         }
         .bebas-neue {
@@ -227,6 +225,9 @@
             align-items: center;
             justify-content: center;
         }
+        .modal-overlay.hidden {
+            display: none !important;
+        }
         .modal-content {
             background: rgba(43, 49, 63, 0.9);
             padding: 2rem;
@@ -362,7 +363,7 @@
         }
     </style>
 </head>
-<body class="text-white min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-slate-50 text-ma-navy">
 
     <!-- Global Loading Overlay -->
     <div id="globalLoadingOverlay" class="fixed inset-0 z-[100] bg-ma-dark/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 hidden">
@@ -382,7 +383,7 @@
     <!-- Spinning Wheel Modal -->
     <div id="spinModal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Spinning... </h2>
+            <h2 id="spinModalTitle" class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Processing Payment...</h2>
             <!-- Updated border color to Gold -->
             <div class="bg-slate-700/60 w-64 h-64 mx-auto flex items-center justify-center rounded-full shadow-lg border-4 border-ma-gold/20 mb-8">
                 <p id="modalFlashingNumber" class="bebas-neue text-8xl font-bold text-white"></p> 
@@ -493,221 +494,56 @@
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section id="spin-to-win-section">
-            <div class="container mx-auto text-center p-4 sm:p-6 md:p-12 glass-panel rounded-2xl shadow-2xl">
-                <h1 class="bebas-neue text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-ma-gold mb-4 drop-shadow-lg">
-                    Spin to Win - 5 Guaranteed Winners!
-                </h1>
-                <p class="text-base sm:text-lg md:text-xl text-gray-300 mb-8">
-                    You might pay as little as $1 and win one of the grand prize (1 Per Winner)!
-                </p>
+        <div class="grid md:grid-cols-2 gap-6 items-start">
+            <div id="initial-form" class="space-y-4 text-left bg-slate-50 border border-slate-200 rounded-xl p-6">
+                <h4 class="bebas-neue text-2xl text-ma-navy">Contact Details</h4>
+                <p class="text-sm text-slate-600">All fields are required to complete your ticket purchase.</p>
+                <input type="text" id="spin-name" placeholder="Full Name" class="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+                <input type="email" id="spin-email" placeholder="Email" class="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
+                <input type="tel" id="spin-phone" placeholder="Phone Number" class="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-ma-gold" required>
 
-                <!-- Live Counter (STATIC SCOREBOARD STRUCTURE) -->
-                <div class="mb-12">
-                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Tickets Left (1 - 500)</h2>
-                    <div id="ticketsLeftDisplay" class="flex justify-center space-x-2 md:space-x-3 lg:space-x-4">
-                        <div id="digit-hundreds" class="digit-box"></div>
-                        <div id="digit-tens" class="digit-box"></div>
-                        <div id="digit-ones" class="digit-box"></div>
-                    </div>
-                </div>
-                <!-- End Live Counter -->
-
-                <!-- How it Works Section -->
-                <div class="mb-12">
-                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">How It Works</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
-                            <p class="bebas-neue text-4xl text-ma-gold mb-2">1</p>
-                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Prepay</h3>
-                            <p class="text-gray-300">Submit payment and get charged a random amount (between $1 - $500).</p>
-                        </div>
-                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
-                            <p class="bebas-neue text-4xl text-ma-gold mb-2">2</p>
-                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Take a Chance</h3>
-                            <p class="text-gray-300">The system will assign you a random number, which is your ticket price.</p>
-                        </div>
-                        <div class="bg-ma-slate/60 p-6 rounded-xl shadow-lg">
-                            <p class="bebas-neue text-4xl text-ma-gold mb-2">3</p>
-                            <h3 class="bebas-neue text-2xl font-bold text-white mb-2">Win Big!</h3>
-                            <p class="text-gray-300">Your single ticket number gives you a chance at the grand prize!</p>
-                        </div>
-                    </div>
+                <label class="flex items-start space-x-3 text-sm text-slate-700">
+                    <input type="checkbox" id="cover-fees" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                    <span>Cover processing fees so the full amount supports the raffle.</span>
+                </label>
+                <p id="processing-fee-note" class="text-xs text-slate-500">Fees update automatically based on your ticket number.</p>
+                <div id="cover-fees-tooltip-wrapper" class="text-xs text-slate-600 inline-flex items-center gap-2 cursor-pointer">
+                    <span class="font-semibold">What does covering fees mean?</span>
+                    <span id="cover-fees-tooltip" class="hidden bg-white border border-slate-200 rounded-md px-2 py-1 text-slate-600 shadow-sm">We add a small processing fee (about 2.2% + $0.30) so the raffle receives the full ticket value.</span>
                 </div>
 
-                <!-- Payment Form Section -->
-                <div class="relative-container glass-panel p-6 rounded-2xl shadow-2xl max-w-lg mx-auto mb-12" style="border: 2px solid rgba(201, 169, 97, 0.5); box-shadow: 0 0 12px rgba(201, 169, 97, 0.3), 0 0 24px rgba(201, 169, 97, 0.15);">
-                    <div id="initial-form" class="space-y-4" autocomplete="off" novalidate>
-                        <h2 class="bebas-neue text-3xl font-bold text-white mb-4">Enter for a Chance to Win!</h2>
-                        <div>
-                            <input type="text" id="spin-name" name="name" placeholder="Full Name" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
-                        </div>
-                        <div>
-                            <input type="email" id="spin-email" name="email" placeholder="Email Address" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
-                        </div>
-                        <div>
-                            <input type="tel" id="spin-phone" name="phone" placeholder="Phone Number" class="w-full py-3 px-4 rounded-lg bg-slate-600/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ma-gold transition-all duration-300" required>
-                        </div>
-
-                        <div class="bg-ma-slate/40 p-4 rounded-lg border border-ma-gold/30">
-                            <div class="flex items-center space-x-3">
-                                <input type="checkbox" id="cover-fees" class="h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer flex-shrink-0">
-                                <label for="cover-fees" class="font-semibold text-white cursor-pointer">I would like to pay the card fees too</label>
-                            </div>
-                            <div class="mt-3 ml-8 flex items-center space-x-2 text-gray-300">
-                                <span id="cover-fees-tooltip-wrapper" class="relative inline-flex items-center cursor-pointer select-none">
-                                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-ma-gold text-xs font-bold text-ma-gold mr-2">?</span>
-                                    <span class="text-xs">2.2% + $0.30 per transaction</span>
-                                    <span id="cover-fees-tooltip" class="tooltip hidden absolute bottom-full left-0 mb-2 w-56 bg-black/80 text-xs text-gray-100 p-2 rounded-lg border border-ma-gold whitespace-normal z-10">If selected, we will add 2.2% + $0.30 so your full ticket amount goes to the raffle.</span>
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <button id="spin-proceed-to-payment" class="w-full py-3 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 relative overflow-hidden glow-button">
-                            <span class="button-text">Proceed to Payment</span>
-                            <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-ma-navy border-opacity-20 rounded-full hidden"></div>
-                        </button>
-                    </div>
-
-                     <!-- Stripe payment element container -->
-                     <div id="spin-stripe-payment-element" class="hidden">
-                            <h2 class="bebas-neue text-3xl font-bold text-white mb-4">Payment Details</h2>
-                         <div class="mb-4 text-sm text-gray-200 bg-ma-slate/50 p-3 rounded-lg">
-                             <p class="font-semibold text-ma-gold mb-1">Randomized Charge Notice</p>
-                             <p>You authorize a one-time randomized charge between $1.00 and $500.00. The final amount is determined by the ticket number assigned after you authorize payment.</p>
-                         </div>
-                         <div id="spin-payment-element-container"></div>
-                         <div class="mt-6 space-y-4 text-sm text-gray-200">
-                            <label class="flex items-start space-x-3">
-                                <input type="checkbox" id="consent-random-charge" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
-                                <span>I authorize a one-time randomized charge between $1.00 and $500.00. I understand the final amount is determined by the computer based on my assigned ticket number and is revealed after payment.</span>
-                            </label>
-                            <label class="flex items-start space-x-3">
-                                <input type="checkbox" id="consent-rules-no-refund" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
-                                <span>I agree to the Official Raffle Rules and the No-Refund Policy.</span>
-                            </label>
-                            <label class="flex items-start space-x-3">
-                                <input type="checkbox" id="consent-age-eligibility" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
-                                <span>I certify that I am 18+ years of age and am legally permitted to participate in this raffle under my local jurisdiction.</span>
-                            </label>
-                         </div>
-                         <button id="spin-stripe-pay-button" class="w-full py-3 mt-4 rounded-full bg-ma-gold hover:bg-ma-gold/80 text-ma-navy font-bold transition-colors duration-300 hidden glow-button disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-ma-gold" disabled>
-                             <span class="button-text">Pay Now</span>
-                             <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-ma-navy border-opacity-20 rounded-full hidden"></div>
-                         </button>
-                     </div>
+                <div class="text-sm text-slate-700 space-y-3">
+                    <label class="flex items-start space-x-3">
+                        <input type="checkbox" id="consent-random-charge" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                        <span>You authorize a one-time randomized charge between $1.00 and $500.00.</span>
+                    </label>
+                    <label class="flex items-start space-x-3">
+                        <input type="checkbox" id="consent-rules-no-refund" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                        <span>You agree to the no-refund policy and official rules.</span>
+                    </label>
+                    <label class="flex items-start space-x-3">
+                        <input type="checkbox" id="consent-age-eligibility" class="mt-1 h-5 w-5 rounded border-ma-gold text-ma-gold focus:ring-ma-gold cursor-pointer">
+                        <span>You confirm that you are at least 18 years old.</span>
+                    </label>
                 </div>
 
-                <!-- Prize Display Section -->
-                <div class="mb-12">
-                    <h2 class="bebas-neue text-3xl font-bold text-ma-gold mb-4">Prizes</h2>
-                    <!-- First Row: Rolex Prize -->
-                    <div class="mb-8">
-                        <div class="w-full">
-                            <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
-                                data-name="1st Prize: Oyster Perpetual Datejust"
-                                data-desc="Take home an Oyster Perpetual Datejust valued at $17,500. Timeless elegance and unmatched craftsmanship."
-                                data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/rolex1.png"
-                                onclick="showPrizeModal(this)">
-                                <h3 class="bebas-neue text-3xl text-ma-gold mb-4">1st Prize: Oyster Perpetual Datejust ($17.5K Value)</h3>
-                                <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/rolex1.png"
-                                    onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=First+Prize'"
-                                    alt="Oyster Perpetual Datejust" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
-                                <p class="text-white text-base font-semibold">A luxury timepiece worth $17,500 (Or 17.5k Cash) awaits the top winner.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Second Row: Other 4 Prizes -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 max-w-full mx-auto gap-8">
-                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
-                            data-name="2nd Prize: Surfside Florida Getaway"
-                            data-desc="Enjoy a 4-night, 5-day vacation on Collins Ave in Surfside, Florida. Sun, sand, and relaxation. (2 Plane tickets included from anywhere in the US)"
-                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/miami.jpg"
-                            onclick="showPrizeModal(this)">
-                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">2nd Prize: Surfside Florida Vacation</h3>
-                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/miami.jpg"
-                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Vacation'"
-                                alt="Surfside Florida Vacation" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
-                            <p class="text-white text-base font-semibold">Stay 4 nights and 5 days on Collins Ave (2 Plane tickets included from anywhere in the US) or take a cash payout.</p>
-                        </div>
-                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
-                            data-name="3rd Prize: $3,000 Cash"
-                            data-desc="Win $3,000 in cash to spend however you like."
-                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash2.jpg"
-                            onclick="showPrizeModal(this)">
-                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">3rd Prize:<br>$3,000 Cash<br></h3>
-                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash2.jpg"
-                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Cash+Prize'"
-                                alt="$3,000 Cash" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
-                            <p class="text-white text-base font-semibold">Pocket $3,000 in cash as the third prize winner.</p>
-                        </div>
-                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
-                            data-name="4th Prize: $2,000 Cash"
-                            data-desc="Receive $2,000 in cash as the fourth prize."
-                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash1.jpeg"
-                            onclick="showPrizeModal(this)">
-                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">4th Prize:<br>$2,000 Cash<br></h3>
-                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/cash1.jpeg"
-                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Cash+Prize'"
-                                alt="$2,000 Cash" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
-                            <p class="text-white text-base font-semibold">Pocket $2,000 in cash as the fourth prize winner.<br><br></p>
-                        </div>
-                        <div class="prize-card bg-ma-slate/60 p-8 rounded-xl gold-white-glow transform transition duration-300 hover:scale-[1.02] cursor-pointer text-white"
-                            data-name="5th Prize: $1,000 to Salt"
-                            data-desc="Win $1,000 to enjoy at Salt restaurant. Or Get an equivalent cash payout."
-                            data-img="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/salt.jpg"
-                            onclick="showPrizeModal(this)">
-                            <h3 class="bebas-neue text-3xl text-ma-gold mb-4">5th Prize:<br>$1,000 to Salt<br></h3>
-                            <img src="https://raw.githubusercontent.com/ToratYosef/Magen-Avraham-Young-Adult-Minyan/refs/heads/main/assets/salt.jpg"
-                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/1e293b/B89A5F?text=Salt+Prize'"
-                                alt="$1,000 to Salt" class="w-full h-auto rounded-lg mb-4 object-contain max-h-60">
-                            <p class="text-white text-base font-semibold">Enjoy $1,000 worth of dining at Salt. Or Get an equivalent cash payout!<br><br></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Removed About Section -->
-
-    </main>
-    
-    <!-- Prize Modal Structure (Kept the same) -->
-    <div id="prize-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[110] p-4 transition-opacity duration-300 opacity-0" 
-        onclick="hidePrizeModal(event)">
-        <div class="bg-slate-950 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95" 
-            id="modal-content-container" onclick="event.stopPropagation()">
-            
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-6 border-b border-slate-800">
-                <!-- Title updated to Gold -->
-                <h3 id="modal-title" class="bebas-neue text-3xl text-ma-gold">Prize Details</h3>
-                <button onclick="hidePrizeModal()" class="text-gray-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-8 h-8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <button id="spin-proceed-to-payment" class="w-full py-3 rounded-full bg-ma-gold text-white font-semibold hover:bg-ma-gold/90 transition relative overflow-hidden">
+                    <span class="button-text">Proceed to Payment</span>
+                    <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-white border-opacity-40 rounded-full hidden"></div>
                 </button>
+                <p id="charge-summary-text" class="text-sm text-slate-700">You authorize a randomized charge between $1.00 and $500.00. The exact amount is determined server-side after you click Pay.</p>
             </div>
-            
-            <!-- Modal Body -->
-            <div class="p-6 md:flex md:space-x-6">
-                <!-- Image Container -->
-                <div class="md:w-1/2 flex items-center justify-center mb-6 md:mb-0">
-                    <img id="modal-image" src="" alt="Prize Image" class="w-full h-auto max-h-96 object-contain rounded-lg shadow-xl">
-                </div>
-                
-                <!-- Description Container -->
-                <div class="md:w-1/2 text-left">
-                    <p id="modal-description" class="text-gray-300 text-lg leading-relaxed mb-6">
-                        Detailed description of the prize will appear here.
-                    </p>
-                    <!-- Button updated to Gold background and Navy text -->
-                    <button onclick="hidePrizeModal();" class="inline-block py-3 px-6 rounded-full bg-ma-gold text-ma-navy font-bold hover:bg-ma-gold/80 transition-colors duration-300">
-                        Close & Spin
-                    </button>
-                </div>
+
+            <div id="spin-stripe-payment-element" class="hidden space-y-4 text-left bg-slate-50 border border-slate-200 rounded-xl p-6">
+                <h4 class="bebas-neue text-2xl text-ma-navy">Payment Details</h4>
+                <div id="spin-payment-element-container" class="bg-white border border-slate-200 rounded-lg p-4"></div>
+                <div class="text-sm text-slate-600">Confirm your card details and submit to lock in your ticket.</div>
+                <button id="spin-stripe-pay-button" class="w-full py-3 mt-2 rounded-full bg-ma-gold text-white font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed hidden relative overflow-hidden" disabled>
+                    <span class="button-text">Pay Now</span>
+                    <div class="button-spinner absolute inset-0 m-auto w-8 h-8 border-4 border-t-4 border-white border-opacity-40 rounded-full hidden"></div>
+                </button>
             </div>
         </div>
     </div>
@@ -748,8 +584,14 @@
                 </p>
             </div>
         </div>
-    </footer>
-
+        <div class="flex flex-wrap gap-4 text-sm font-semibold text-ma-navy">
+            <a href="/" class="hover:text-ma-gold">Home</a>
+            <a href="/rules.html" class="hover:text-ma-gold">Rules</a>
+            <a href="/terms.html" class="hover:text-ma-gold">Terms</a>
+            <a href="/privacy.html" class="hover:text-ma-gold">Privacy</a>
+        </div>
+    </div>
+</footer>
     <!-- Firebase and Stripe Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -757,53 +599,6 @@
     <script src="https://js.stripe.com/v3/"></script>
 
     <script>
-        // --- Modal Functions ---
-        function showPrizeModal(element) {
-            const name = element.getAttribute('data-name');
-            const desc = element.getAttribute('data-desc');
-            const img = element.getAttribute('data-img');
-
-            const modal = document.getElementById('prize-modal');
-            const modalContent = document.getElementById('modal-content-container');
-            
-            document.getElementById('modal-title').textContent = name;
-            document.getElementById('modal-description').textContent = desc;
-            document.getElementById('modal-image').src = img;
-            document.getElementById('modal-image').alt = name;
-
-            // Show modal and apply transition classes
-            modal.classList.remove('hidden');
-            modal.classList.add('flex'); // Use flex to center
-            
-            setTimeout(() => {
-                modal.style.opacity = '1';
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }, 10); // Small delay for transition
-        }
-
-        function hidePrizeModal(event) {
-            if (event && event.currentTarget.id !== 'prize-modal' && event.type === 'click') {
-                return;
-            }
-            
-            const modal = document.getElementById('prize-modal');
-            const modalContent = document.getElementById('modal-content-container');
-            
-            // Apply transition out classes
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-            modal.style.opacity = '0';
-            
-            // Hide modal after transition completes
-            setTimeout(() => {
-                modal.classList.remove('flex');
-                modal.classList.add('hidden');
-            }, 300); // Wait for transition duration (300ms)
-        }
-        // --- End Modal Functions ---
-
-
         document.addEventListener('DOMContentLoaded', async () => {
             // --- UI Elements ---
             const initialForm = document.getElementById('initial-form');
@@ -821,6 +616,7 @@
             const chargeSummaryText = document.getElementById('charge-summary-text');
             const payButtonLabel = spinStripePayButton.querySelector('.button-text');
             const payButtonSpinner = spinStripePayButton.querySelector('.button-spinner');
+            const spinModalTitle = document.getElementById('spinModalTitle');
             const consentRandomCharge = document.getElementById('consent-random-charge');
             const consentRulesNoRefund = document.getElementById('consent-rules-no-refund');
             const consentAgeEligibility = document.getElementById('consent-age-eligibility');
@@ -909,7 +705,13 @@
             }
 
             function showGlobalLoadingOverlay(message = "Loading...", disableForm = false) {
-                globalSpinnerText.textContent = message;
+                if (message) {
+                    globalSpinnerText.textContent = message;
+                    globalSpinnerText.classList.remove('hidden');
+                } else {
+                    globalSpinnerText.textContent = '';
+                    globalSpinnerText.classList.add('hidden');
+                }
                 globalLoadingOverlay.classList.remove('hidden');
             }
 
@@ -927,6 +729,35 @@
                 } catch (error) {
                     console.error('Failed to load spin config. Using defaults.', error);
                 }
+            }
+
+            async function pollPaymentStatus(paymentIntentId, maxAttempts = 15, delayMs = 1200) {
+                if (!paymentIntentId) {
+                    throw new Error('Missing payment reference; cannot confirm payment.');
+                }
+
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    try {
+                        const statusResponse = await fetch(`${functionsBaseUrl}/spinPaymentStatusHttp?paymentIntentId=${encodeURIComponent(paymentIntentId)}`);
+                        const statusPayload = await statusResponse.json().catch(() => ({}));
+
+                        if (statusResponse.ok) {
+                            const status = (statusPayload.status || '').toLowerCase();
+                            if (status === 'assigned' && statusPayload.ticketNumber) {
+                                return statusPayload;
+                            }
+                            if (status === 'failed') {
+                                throw new Error(statusPayload.message || 'Payment failed to complete.');
+                            }
+                        }
+                    } catch (pollError) {
+                        if (attempt === maxAttempts - 1) throw pollError;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                }
+
+                throw new Error('Timed out waiting for payment confirmation.');
             }
 
             function mountPaymentElement() {
@@ -980,6 +811,9 @@
             // --- Spin to Win Logic ---
 
             function startSpinAnimation() {
+                if (spinModalTitle) {
+                    spinModalTitle.textContent = 'Spinning...';
+                }
                 modalFlashingNumber.classList.remove('result-blink-red'); // Clear final state
                 modalFlashingNumber.classList.add('flashing-text'); // ADD flashing during spin
                 modalResultDisplay.classList.add('hidden');
@@ -1083,8 +917,8 @@
                 }
 
                 try {
-                    showGlobalLoadingOverlay('Processing payment...');
-                    if (payButtonLabel) payButtonLabel.textContent = 'Processing & Spinning...';
+                    showGlobalLoadingOverlay('');
+                    if (payButtonLabel) payButtonLabel.textContent = 'Processing Payment...';
                     if (payButtonSpinner) payButtonSpinner.classList.remove('hidden');
                     spinStripePayButton.disabled = true;
                     const { error: submitError } = await elements.submit();
@@ -1145,13 +979,27 @@
                     }
 
                     const handleSuccess = async (payload) => {
-                        spinTicketNumber = payload.ticketNumber;
-                        chargeSummary = payload.chargeSummary || chargeSummary || {
-                            baseAmount: cleanAmount(payload.ticketNumber || 0),
-                            totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
-                            mandatoryFees: 0,
-                            processingFee: 0,
-                        };
+                        const paymentIntentId = payload.paymentIntentId;
+                        showGlobalLoadingOverlay('Finalizing your ticket...');
+
+                        try {
+                            const statusPayload = await pollPaymentStatus(paymentIntentId);
+                            spinTicketNumber = statusPayload.ticketNumber || payload.ticketNumber;
+                            chargeSummary = statusPayload.chargeSummary || payload.chargeSummary || chargeSummary || {
+                                baseAmount: cleanAmount(payload.ticketNumber || 0),
+                                totalCharge: cleanAmount(payload.amountCharged || payload.ticketNumber || 0),
+                                mandatoryFees: 0,
+                                processingFee: 0,
+                            };
+                        } catch (statusError) {
+                            hideGlobalLoadingOverlay();
+                            spinStripePayButton.disabled = false;
+                            if (payButtonSpinner) payButtonSpinner.classList.add('hidden');
+                            if (payButtonLabel) payButtonLabel.textContent = 'Pay Now';
+                            showCustomPopup('Payment Pending', statusError.message || 'Payment is still being confirmed. Please try again.');
+                            return;
+                        }
+
                         hideGlobalLoadingOverlay();
 
                         spinStripePaymentElement.classList.add('hidden');
